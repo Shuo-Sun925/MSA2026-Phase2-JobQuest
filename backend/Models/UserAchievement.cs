@@ -6,11 +6,11 @@ public class UserAchievement
 
     public int UserId { get; set; }
 
-    public ApplicationUser? User { get; set; }
+    public ApplicationUser User { get; set; } = null!;
 
     public int AchievementId { get; set; }
 
-    public Achievement? Achievement { get; set; }
+    public Achievement Achievement { get; set; } = null!;
 
     public DateTime UnlockedAt { get; set; } = DateTime.UtcNow;
 }

@@ -8,7 +8,7 @@ public class UserProgress
 
     public int UserId { get; set; }
 
-    public ApplicationUser? User { get; set; }
+    public ApplicationUser User { get; set; } = null!;
 
     public int TotalPoints { get; set; } = 0;
 

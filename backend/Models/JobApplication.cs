@@ -8,7 +8,7 @@ public class JobApplication
 
     public int UserId { get; set; }
 
-    public ApplicationUser? User { get; set; }
+    public ApplicationUser User { get; set; } = null!;
 
     [Required]
     [MaxLength(100)]
