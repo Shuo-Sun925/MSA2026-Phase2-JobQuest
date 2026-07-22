@@ -1,7 +1,20 @@
 using backend.Data;
 using Scalar.AspNetCore;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var connectionString =
+    builder.Configuration.GetConnectionString("DefaultConnection");
+
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException(
+        "Connection string 'DefaultConnection' was not configured.");
+}
+
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseNpgsql(connectionString));
 
 // Add services to the container.
 builder.Services.AddControllers();
