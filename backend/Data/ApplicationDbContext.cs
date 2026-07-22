@@ -41,7 +41,15 @@ public class ApplicationDbContext(
             entity.HasKey(user => user.Id);
 
             entity.Property(user => user.Username)
-                .IsRequired();
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.HasIndex(user => user.Username)
+                .IsUnique();
+
+            entity.Property(user => user.PasswordHash)
+                .IsRequired()
+                .HasMaxLength(500);
         });
     }
 
@@ -87,6 +95,8 @@ public class ApplicationDbContext(
         modelBuilder.Entity<Achievement>(entity =>
         {
             entity.HasKey(achievement => achievement.Id);
+            entity.HasIndex(achievement => achievement.Name)
+                .IsUnique();            
         });
     }
 
