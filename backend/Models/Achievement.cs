@@ -21,7 +21,7 @@ public class Achievement
     [MaxLength(100)]
     public string ConditionType { get; set; } = string.Empty;
 
-    
+
     [Range(1, int.MaxValue)]
     public int TargetValue { get; set; }
 

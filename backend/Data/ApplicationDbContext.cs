@@ -96,7 +96,7 @@ public class ApplicationDbContext(
         {
             entity.HasKey(achievement => achievement.Id);
             entity.HasIndex(achievement => achievement.Name)
-                .IsUnique();            
+                .IsUnique();
         });
     }
 
