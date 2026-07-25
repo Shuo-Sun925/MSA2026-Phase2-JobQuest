@@ -5,6 +5,7 @@ using backend.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using backend.Helpers;
 
 namespace backend.Controllers;
 
@@ -50,6 +51,58 @@ public class JobApplicationsController : ControllerBase
         return Ok(applications);
     }
 
+    // GET: /api/jobapplications/weekly-goal-progress
+    [HttpGet("weekly-goal-progress")]
+    public async Task<ActionResult<WeeklyGoalProgressResponse>>
+        GetWeeklyGoalProgress()
+    {
+        if (!TryGetCurrentUserId(out var userId))
+        {
+            return Unauthorized(new
+            {
+                message = "Invalid authentication token."
+            });
+        }
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var weekStartDate = GetWeekStart(today);
+        var weekEndDate = weekStartDate.AddDays(6);
+
+        var weeklyGoal = await _context.UserProgress
+            .AsNoTracking()
+            .Where(progress => progress.UserId == userId)
+            .Select(progress => progress.WeeklyGoal)
+            .FirstOrDefaultAsync();
+
+        if (weeklyGoal <= 0)
+        {
+            weeklyGoal = 5;
+        }
+
+        var appliedThisWeek = await _context.JobApplications
+            .AsNoTracking()
+            .Where(application =>
+                application.UserId == userId
+                && application.AppliedDate.HasValue
+                && application.AppliedDate.Value >= weekStartDate
+                && application.AppliedDate.Value <= weekEndDate
+            )
+            .CountAsync();
+
+        return Ok(new WeeklyGoalProgressResponse
+        {
+            WeeklyGoal = weeklyGoal,
+            AppliedThisWeek = appliedThisWeek,
+            RemainingApplications = Math.Max(
+                weeklyGoal - appliedThisWeek,
+                0
+            ),
+            IsGoalMet = appliedThisWeek >= weeklyGoal,
+            WeekStartDate = weekStartDate,
+            WeekEndDate = weekEndDate
+        });
+    }
+
     // GET: /api/jobapplications/5
     [HttpGet("{id:int}")]
     public async Task<ActionResult<JobApplicationResponse>>
@@ -93,7 +146,10 @@ public class JobApplicationsController : ControllerBase
                 message = "Invalid authentication token."
             });
         }
-
+        var appliedDate = JobApplicationStatusRules.ResolveAppliedDate(
+            request.Status,
+            request.AppliedDate
+        );
         var application = new JobApplication
         {
             UserId = userId,
@@ -106,7 +162,7 @@ public class JobApplicationsController : ControllerBase
                 request.JobLink
             ),
             Status = request.Status,
-            AppliedDate = request.AppliedDate,
+            AppliedDate = appliedDate,
             NextFollowUpDate = request.NextFollowUpDate,
             Notes = NormalizeOptionalText(
                 request.Notes
@@ -160,6 +216,18 @@ public class JobApplicationsController : ControllerBase
             });
         }
 
+        if (!JobApplicationStatusRules.IsValidTransition(
+                application.Status,
+                request.Status
+            ))
+        {
+            return BadRequest(new
+            {
+                message =
+                    $"Invalid status transition from {application.Status} to {request.Status}."
+            });
+        }
+
         application.CompanyName =
             request.CompanyName.Trim();
 
@@ -175,7 +243,11 @@ public class JobApplicationsController : ControllerBase
         application.Status = request.Status;
 
         application.AppliedDate =
-            request.AppliedDate;
+            JobApplicationStatusRules.ResolveAppliedDate(
+                request.Status,
+                request.AppliedDate,
+                application.AppliedDate
+            );
 
         application.NextFollowUpDate =
             request.NextFollowUpDate;
@@ -262,5 +334,12 @@ public class JobApplicationsController : ControllerBase
         }
 
         return value.Trim();
+    }
+
+    private static DateOnly GetWeekStart(DateOnly date)
+    {
+        var offset = ((int)date.DayOfWeek + 6) % 7;
+
+        return date.AddDays(-offset);
     }
 }

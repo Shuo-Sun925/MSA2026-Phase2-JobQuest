@@ -51,6 +51,18 @@ public class UpdateJobApplicationRequest : IValidatableObject
     public IEnumerable<ValidationResult> Validate(
         ValidationContext validationContext)
     {
+        if (Status == JobApplicationStatus.Saved
+            && AppliedDate.HasValue)
+        {
+            yield return new ValidationResult(
+                "A saved job application cannot have an applied date.",
+                new[]
+                {
+                    nameof(AppliedDate)
+                }
+            );
+        }
+
         if (AppliedDate.HasValue
             && NextFollowUpDate.HasValue
             && NextFollowUpDate.Value < AppliedDate.Value)

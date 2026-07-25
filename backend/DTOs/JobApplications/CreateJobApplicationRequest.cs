@@ -48,10 +48,34 @@ public class CreateJobApplicationRequest : IValidatableObject
         ErrorMessage = "Notes cannot exceed 2000 characters."
     )]
     public string? Notes { get; set; }
-
     public IEnumerable<ValidationResult> Validate(
         ValidationContext validationContext)
     {
+        if (Status == JobApplicationStatus.Saved
+            && AppliedDate.HasValue)
+        {
+            yield return new ValidationResult(
+                "A saved job application cannot have an applied date.",
+                new[]
+                {
+                    nameof(AppliedDate)
+                }
+            );
+        }
+
+        if (Status == JobApplicationStatus.Withdrawn
+            && AppliedDate.HasValue
+            && NextFollowUpDate.HasValue)
+        {
+            yield return new ValidationResult(
+                "A withdrawn application should not have a follow-up date.",
+                new[]
+                {
+                    nameof(NextFollowUpDate)
+                }
+            );
+        }
+
         if (AppliedDate.HasValue
             && NextFollowUpDate.HasValue
             && NextFollowUpDate.Value < AppliedDate.Value)
@@ -65,4 +89,5 @@ public class CreateJobApplicationRequest : IValidatableObject
             );
         }
     }
+
 }
