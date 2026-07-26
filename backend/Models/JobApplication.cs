@@ -31,6 +31,8 @@ public class JobApplication
 
     public DateOnly? NextFollowUpDate { get; set; }
 
+    public bool HasEarnedFollowUpPoints { get; set; }
+
     [MaxLength(2000)]
     public string? Notes { get; set; }
 

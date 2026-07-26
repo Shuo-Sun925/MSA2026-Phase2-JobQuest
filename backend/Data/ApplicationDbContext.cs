@@ -1,3 +1,4 @@
+using backend.Helpers;
 using backend.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -64,6 +65,10 @@ public class ApplicationDbContext(
                 .HasConversion<string>()
                 .HasMaxLength(50);
 
+            entity.Property(application =>
+                    application.HasEarnedFollowUpPoints)
+                .HasDefaultValue(false);
+
             entity.HasOne(application => application.User)
                 .WithMany(user => user.JobApplications)
                 .HasForeignKey(application => application.UserId)
@@ -97,6 +102,10 @@ public class ApplicationDbContext(
             entity.HasKey(achievement => achievement.Id);
             entity.HasIndex(achievement => achievement.Name)
                 .IsUnique();
+
+            entity.HasData(
+                AchievementCatalog.All
+            );
         });
     }
 

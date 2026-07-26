@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using backend.Helpers;
+using backend.Services;
 
 namespace backend.Controllers;
 
@@ -15,11 +16,14 @@ namespace backend.Controllers;
 public class JobApplicationsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly IGamificationService _gamificationService;
 
     public JobApplicationsController(
-        ApplicationDbContext context)
+        ApplicationDbContext context,
+        IGamificationService gamificationService)
     {
         _context = context;
+        _gamificationService = gamificationService;
     }
 
     // GET: /api/jobapplications
@@ -66,7 +70,8 @@ public class JobApplicationsController : ControllerBase
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var weekStartDate = GetWeekStart(today);
-        var weekEndDate = weekStartDate.AddDays(6);
+        var nextWeekStartDate = weekStartDate.AddDays(7);
+        var weekEndDate = nextWeekStartDate.AddDays(-1);
 
         var weeklyGoal = await _context.UserProgress
             .AsNoTracking()
@@ -81,13 +86,12 @@ public class JobApplicationsController : ControllerBase
 
         var appliedThisWeek = await _context.JobApplications
             .AsNoTracking()
-            .Where(application =>
+            .CountAsync(application =>
                 application.UserId == userId
                 && application.AppliedDate.HasValue
                 && application.AppliedDate.Value >= weekStartDate
-                && application.AppliedDate.Value <= weekEndDate
-            )
-            .CountAsync();
+                && application.AppliedDate.Value < nextWeekStartDate
+            );
 
         return Ok(new WeeklyGoalProgressResponse
         {
@@ -163,7 +167,12 @@ public class JobApplicationsController : ControllerBase
             ),
             Status = request.Status,
             AppliedDate = appliedDate,
-            NextFollowUpDate = request.NextFollowUpDate,
+            NextFollowUpDate =
+                JobApplicationStatusRules.IsTerminalStatus(
+                    request.Status
+                )
+                    ? null
+                    : request.NextFollowUpDate,
             Notes = NormalizeOptionalText(
                 request.Notes
             ),
@@ -172,6 +181,10 @@ public class JobApplicationsController : ControllerBase
         };
 
         _context.JobApplications.Add(application);
+
+        await _gamificationService.ApplyOnCreateAsync(
+            application
+        );
 
         await _context.SaveChangesAsync();
 
@@ -228,6 +241,9 @@ public class JobApplicationsController : ControllerBase
             });
         }
 
+        var previousStatus = application.Status;
+        var previousFollowUpDate = application.NextFollowUpDate;
+
         application.CompanyName =
             request.CompanyName.Trim();
 
@@ -250,12 +266,22 @@ public class JobApplicationsController : ControllerBase
             );
 
         application.NextFollowUpDate =
-            request.NextFollowUpDate;
+            JobApplicationStatusRules.IsTerminalStatus(
+                request.Status
+            )
+                ? null
+                : request.NextFollowUpDate;
 
         application.Notes =
             NormalizeOptionalText(request.Notes);
 
         application.UpdatedAt = DateTime.UtcNow;
+
+        await _gamificationService.ApplyOnUpdateAsync(
+            application,
+            previousStatus,
+            previousFollowUpDate
+        );
 
         await _context.SaveChangesAsync();
 
