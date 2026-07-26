@@ -74,6 +74,7 @@ builder.Services.AddScoped<
     IGamificationService,
     GamificationService
 >();
+builder.Services.AddScoped<IProgressService, ProgressService>();
 
 builder.Services
     .AddAuthentication(

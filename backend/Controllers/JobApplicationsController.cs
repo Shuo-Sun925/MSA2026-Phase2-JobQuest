@@ -55,58 +55,6 @@ public class JobApplicationsController : ControllerBase
         return Ok(applications);
     }
 
-    // GET: /api/jobapplications/weekly-goal-progress
-    [HttpGet("weekly-goal-progress")]
-    public async Task<ActionResult<WeeklyGoalProgressResponse>>
-        GetWeeklyGoalProgress()
-    {
-        if (!TryGetCurrentUserId(out var userId))
-        {
-            return Unauthorized(new
-            {
-                message = "Invalid authentication token."
-            });
-        }
-
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var weekStartDate = GetWeekStart(today);
-        var nextWeekStartDate = weekStartDate.AddDays(7);
-        var weekEndDate = nextWeekStartDate.AddDays(-1);
-
-        var weeklyGoal = await _context.UserProgress
-            .AsNoTracking()
-            .Where(progress => progress.UserId == userId)
-            .Select(progress => progress.WeeklyGoal)
-            .FirstOrDefaultAsync();
-
-        if (weeklyGoal <= 0)
-        {
-            weeklyGoal = 5;
-        }
-
-        var appliedThisWeek = await _context.JobApplications
-            .AsNoTracking()
-            .CountAsync(application =>
-                application.UserId == userId
-                && application.AppliedDate.HasValue
-                && application.AppliedDate.Value >= weekStartDate
-                && application.AppliedDate.Value < nextWeekStartDate
-            );
-
-        return Ok(new WeeklyGoalProgressResponse
-        {
-            WeeklyGoal = weeklyGoal,
-            AppliedThisWeek = appliedThisWeek,
-            RemainingApplications = Math.Max(
-                weeklyGoal - appliedThisWeek,
-                0
-            ),
-            IsGoalMet = appliedThisWeek >= weeklyGoal,
-            WeekStartDate = weekStartDate,
-            WeekEndDate = weekEndDate
-        });
-    }
-
     // GET: /api/jobapplications/5
     [HttpGet("{id:int}")]
     public async Task<ActionResult<JobApplicationResponse>>
@@ -360,12 +308,5 @@ public class JobApplicationsController : ControllerBase
         }
 
         return value.Trim();
-    }
-
-    private static DateOnly GetWeekStart(DateOnly date)
-    {
-        var offset = ((int)date.DayOfWeek + 6) % 7;
-
-        return date.AddDays(-offset);
     }
 }
