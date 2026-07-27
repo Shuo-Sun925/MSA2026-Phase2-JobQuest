@@ -131,6 +131,43 @@ public class ProgressServiceTests
     }
 
     [Fact]
+    public async Task GetWeeklyGoalProgressAsync_FallsBackToDefaultWeeklyGoalWhenStoredValueIsInvalid()
+    {
+        using var context = TestDbContextFactory.CreateContext();
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var weekStart = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
+
+        context.UserProgress.Add(
+            new UserProgress
+            {
+                UserId = 1,
+                WeeklyGoal = 0
+            }
+        );
+
+        context.JobApplications.Add(
+            new JobApplication
+            {
+                UserId = 1,
+                CompanyName = "Contoso",
+                JobTitle = "Engineer",
+                Status = JobApplicationStatus.Rejected,
+                AppliedDate = weekStart
+            }
+        );
+        await context.SaveChangesAsync();
+
+        var service = new ProgressService(context);
+
+        var response = await service.GetWeeklyGoalProgressAsync(1);
+
+        Assert.Equal(5, response.WeeklyGoal);
+        Assert.Equal(1, response.AppliedThisWeek);
+        Assert.Equal(4, response.RemainingApplications);
+        Assert.False(response.IsGoalMet);
+    }
+
+    [Fact]
     public async Task GetProgressSummaryAsync_ReturnsCountsAndGoalProgressForCurrentUserOnly()
     {
         using var context = TestDbContextFactory.CreateContext();
@@ -194,10 +231,40 @@ public class ProgressServiceTests
     }
 
     [Fact]
+    public async Task GetProgressSummaryAsync_UsesDefaultProgressValuesWhenProgressRecordIsMissing()
+    {
+        using var context = TestDbContextFactory.CreateContext();
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var weekStart = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
+
+        context.JobApplications.AddRange(
+            CreateApplication(1, JobApplicationStatus.Saved, null),
+            CreateApplication(1, JobApplicationStatus.Applied, weekStart),
+            CreateApplication(1, JobApplicationStatus.Withdrawn, weekStart.AddDays(1))
+        );
+        await context.SaveChangesAsync();
+
+        var service = new ProgressService(context);
+
+        var response = await service.GetProgressSummaryAsync(1);
+
+        Assert.Equal(3, response.TotalApplications);
+        Assert.Equal(2, response.ApplicationsThisWeek);
+        Assert.Equal(0, response.TotalPoints);
+        Assert.Equal(1, response.CurrentLevel);
+        Assert.Equal(0, response.CurrentStreak);
+        Assert.Null(response.LastActivityDate);
+        Assert.Equal(5, response.WeeklyGoal);
+        Assert.Equal(2, response.WeeklyGoalProgress);
+        Assert.Equal(3, response.RemainingApplications);
+        Assert.False(response.IsGoalMet);
+    }
+
+    [Fact]
     public async Task GetAchievementsAsync_ReturnsTemplatesWithUnlockedState()
     {
         using var context = TestDbContextFactory.CreateContext();
-        context.Achievements.AddRange(AchievementCatalog.All);
+        context.Achievements.AddRange(CreateAchievementTemplates());
         context.UserAchievements.AddRange(
             new UserAchievement
             {
@@ -235,6 +302,33 @@ public class ProgressServiceTests
         );
     }
 
+    [Fact]
+    public async Task GetAchievementsAsync_ReturnsAllTemplatesLockedWhenUserHasNoUnlocks()
+    {
+        using var context = TestDbContextFactory.CreateContext();
+        context.Achievements.AddRange(CreateAchievementTemplates());
+        await context.SaveChangesAsync();
+
+        var service = new ProgressService(context);
+
+        var response = await service.GetAchievementsAsync(1);
+
+        Assert.Equal(5, response.Count);
+        Assert.All(response, achievement =>
+        {
+            Assert.False(achievement.IsUnlocked);
+            Assert.Null(achievement.UnlockedAt);
+        });
+        Assert.Equal(
+            AchievementCatalog.FirstApplicationId,
+            response.First().Id
+        );
+        Assert.Equal(
+            AchievementCatalog.OfferHunterId,
+            response.Last().Id
+        );
+    }
+
     private static JobApplication CreateApplication(
         int userId,
         JobApplicationStatus status,
@@ -248,5 +342,21 @@ public class ProgressServiceTests
             Status = status,
             AppliedDate = appliedDate
         };
+    }
+
+    private static IEnumerable<Achievement> CreateAchievementTemplates()
+    {
+        return AchievementCatalog.All.Select(achievement =>
+            new Achievement
+            {
+                Id = achievement.Id,
+                Name = achievement.Name,
+                Description = achievement.Description,
+                Icon = achievement.Icon,
+                ConditionType = achievement.ConditionType,
+                TargetValue = achievement.TargetValue,
+                CreatedAt = achievement.CreatedAt
+            }
+        );
     }
 }

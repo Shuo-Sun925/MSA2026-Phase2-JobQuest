@@ -26,14 +26,6 @@
 /Users/sunshuo/Desktop/msa2026/MSA2026-Phase2-JobQuest/backend.Tests/bin/Debug/net10.0/Microsoft.EntityFrameworkCore.Abstractions.dll
 /Users/sunshuo/Desktop/msa2026/MSA2026-Phase2-JobQuest/backend.Tests/bin/Debug/net10.0/Microsoft.EntityFrameworkCore.InMemory.dll
 /Users/sunshuo/Desktop/msa2026/MSA2026-Phase2-JobQuest/backend.Tests/bin/Debug/net10.0/Microsoft.EntityFrameworkCore.Relational.dll
-/Users/sunshuo/Desktop/msa2026/MSA2026-Phase2-JobQuest/backend.Tests/bin/Debug/net10.0/Microsoft.Extensions.Caching.Abstractions.dll
-/Users/sunshuo/Desktop/msa2026/MSA2026-Phase2-JobQuest/backend.Tests/bin/Debug/net10.0/Microsoft.Extensions.Caching.Memory.dll
-/Users/sunshuo/Desktop/msa2026/MSA2026-Phase2-JobQuest/backend.Tests/bin/Debug/net10.0/Microsoft.Extensions.DependencyInjection.dll
-/Users/sunshuo/Desktop/msa2026/MSA2026-Phase2-JobQuest/backend.Tests/bin/Debug/net10.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll
-/Users/sunshuo/Desktop/msa2026/MSA2026-Phase2-JobQuest/backend.Tests/bin/Debug/net10.0/Microsoft.Extensions.Logging.dll
-/Users/sunshuo/Desktop/msa2026/MSA2026-Phase2-JobQuest/backend.Tests/bin/Debug/net10.0/Microsoft.Extensions.Logging.Abstractions.dll
-/Users/sunshuo/Desktop/msa2026/MSA2026-Phase2-JobQuest/backend.Tests/bin/Debug/net10.0/Microsoft.Extensions.Options.dll
-/Users/sunshuo/Desktop/msa2026/MSA2026-Phase2-JobQuest/backend.Tests/bin/Debug/net10.0/Microsoft.Extensions.Primitives.dll
 /Users/sunshuo/Desktop/msa2026/MSA2026-Phase2-JobQuest/backend.Tests/bin/Debug/net10.0/Microsoft.IdentityModel.Abstractions.dll
 /Users/sunshuo/Desktop/msa2026/MSA2026-Phase2-JobQuest/backend.Tests/bin/Debug/net10.0/Microsoft.IdentityModel.JsonWebTokens.dll
 /Users/sunshuo/Desktop/msa2026/MSA2026-Phase2-JobQuest/backend.Tests/bin/Debug/net10.0/Microsoft.IdentityModel.Logging.dll
