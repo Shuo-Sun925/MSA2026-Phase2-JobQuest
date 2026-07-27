@@ -3,6 +3,7 @@ using backend.Data;
 using backend.Models;
 using backend.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -10,6 +11,41 @@ using Scalar.AspNetCore;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
+
+string[] GetCorsAllowedOrigins(
+    IConfiguration configuration)
+{
+    var configuredOrigins = configuration
+        .GetSection("Cors:AllowedOrigins")
+        .Get<string[]>()
+        ?? Array.Empty<string>();
+
+    if (configuredOrigins.Length == 0)
+    {
+        var rawOrigins = configuration["Cors:AllowedOrigins"];
+
+        if (!string.IsNullOrWhiteSpace(rawOrigins))
+        {
+            configuredOrigins = rawOrigins
+                .Split(
+                    [',', ';'],
+                    StringSplitOptions.RemoveEmptyEntries
+                    | StringSplitOptions.TrimEntries
+                );
+        }
+    }
+
+    return configuredOrigins
+        .Where(origin =>
+            Uri.TryCreate(
+                origin,
+                UriKind.Absolute,
+                out _
+            )
+        )
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToArray();
+}
 
 var isTesting = builder.Environment.IsEnvironment("Testing");
 
@@ -34,6 +70,9 @@ if (string.IsNullOrWhiteSpace(connectionString))
 var jwtKey = builder.Configuration["Jwt:Key"];
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 var jwtAudience = builder.Configuration["Jwt:Audience"];
+var corsAllowedOrigins = GetCorsAllowedOrigins(
+    builder.Configuration
+);
 
 if (string.IsNullOrWhiteSpace(jwtKey))
 {
@@ -84,6 +123,26 @@ builder.Services
             new JsonStringEnumConverter()
         );
     });
+
+if (corsAllowedOrigins.Length > 0)
+{
+    builder.Services.AddCors(options =>
+    {
+        options.AddPolicy(
+            "FrontendCors",
+            policy =>
+            {
+                policy
+                    .WithOrigins(corsAllowedOrigins)
+                    .AllowAnyHeader()
+                    .AllowAnyMethod();
+            }
+        );
+    });
+}
+
+builder.Services.AddHealthChecks();
+
 builder.Services.AddOpenApi();
 
 builder.Services.AddScoped<
@@ -176,7 +235,7 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
+if (!app.Environment.IsEnvironment("Testing"))
 {
     app.MapOpenApi();
 
@@ -191,8 +250,15 @@ if (!app.Environment.IsEnvironment("Testing"))
     app.UseHttpsRedirection();
 }
 
+if (corsAllowedOrigins.Length > 0)
+{
+    app.UseCors("FrontendCors");
+}
+
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapHealthChecks("/health");
 
 app.MapGet(
     "/",

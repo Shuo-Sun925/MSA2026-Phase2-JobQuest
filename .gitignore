@@ -1,6 +1,8 @@
 # .NET
 backend/**/bin/
 backend/**/obj/
+backend/**/publish/
+publish/
 
 # User-specific files
 *.user
