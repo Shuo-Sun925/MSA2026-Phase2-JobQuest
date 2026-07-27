@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using backend.DTOs.Achievements;
+using backend.Helpers;
 using backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -32,7 +33,9 @@ public class AchievementsController(
 
     private bool TryGetCurrentUserId(out int userId)
     {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return int.TryParse(userIdClaim, out userId);
+        return UserClaimsHelper.TryGetUserId(
+            User,
+            out userId
+        );
     }
 }

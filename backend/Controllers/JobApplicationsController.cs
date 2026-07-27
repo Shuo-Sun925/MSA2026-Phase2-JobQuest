@@ -272,11 +272,10 @@ public class JobApplicationsController : ControllerBase
     private bool TryGetCurrentUserId(
         out int userId)
     {
-        var userIdClaim = User.FindFirstValue(
-            ClaimTypes.NameIdentifier
+        return UserClaimsHelper.TryGetUserId(
+            User,
+            out userId
         );
-
-        return int.TryParse(userIdClaim, out userId);
     }
 
     private static JobApplicationResponse MapToResponse(

@@ -11,6 +11,8 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var isTesting = builder.Environment.IsEnvironment("Testing");
+
 var connectionString =
     builder.Configuration.GetConnectionString(
         "DefaultConnection"
@@ -18,9 +20,15 @@ var connectionString =
 
 if (string.IsNullOrWhiteSpace(connectionString))
 {
-    throw new InvalidOperationException(
-        "Connection string 'DefaultConnection' was not configured."
-    );
+    if (!isTesting)
+    {
+        throw new InvalidOperationException(
+            "Connection string 'DefaultConnection' was not configured."
+        );
+    }
+
+    connectionString =
+        "Host=localhost;Database=jobquest_testing;Username=test;Password=test";
 }
 
 var jwtKey = builder.Configuration["Jwt:Key"];
@@ -29,23 +37,38 @@ var jwtAudience = builder.Configuration["Jwt:Audience"];
 
 if (string.IsNullOrWhiteSpace(jwtKey))
 {
-    throw new InvalidOperationException(
-        "JWT key was not configured."
-    );
+    if (!isTesting)
+    {
+        throw new InvalidOperationException(
+            "JWT key was not configured."
+        );
+    }
+
+    jwtKey = "super-secret-test-key-123456789012345";
 }
 
 if (string.IsNullOrWhiteSpace(jwtIssuer))
 {
-    throw new InvalidOperationException(
-        "JWT issuer was not configured."
-    );
+    if (!isTesting)
+    {
+        throw new InvalidOperationException(
+            "JWT issuer was not configured."
+        );
+    }
+
+    jwtIssuer = "jobquest-tests";
 }
 
 if (string.IsNullOrWhiteSpace(jwtAudience))
 {
-    throw new InvalidOperationException(
-        "JWT audience was not configured."
-    );
+    if (!isTesting)
+    {
+        throw new InvalidOperationException(
+            "JWT audience was not configured."
+        );
+    }
+
+    jwtAudience = "jobquest-tests";
 }
 
 builder.Services.AddDbContext<ApplicationDbContext>(
@@ -80,28 +103,74 @@ builder.Services
     .AddAuthentication(
         JwtBearerDefaults.AuthenticationScheme
     )
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters =
-            new TokenValidationParameters
+    .AddJwtBearer();
+
+builder.Services
+    .AddOptions<JwtBearerOptions>(
+        JwtBearerDefaults.AuthenticationScheme
+    )
+    .Configure<IConfiguration>(
+        (options, configuration) =>
+        {
+            var configuredJwtKey =
+                configuration["Jwt:Key"];
+
+            var configuredJwtIssuer =
+                configuration["Jwt:Issuer"];
+
+            var configuredJwtAudience =
+                configuration["Jwt:Audience"];
+
+            if (string.IsNullOrWhiteSpace(
+                    configuredJwtKey
+                ))
             {
-                ValidateIssuer = true,
-                ValidIssuer = jwtIssuer,
+                throw new InvalidOperationException(
+                    "JWT key was not configured."
+                );
+            }
 
-                ValidateAudience = true,
-                ValidAudience = jwtAudience,
+            if (string.IsNullOrWhiteSpace(
+                    configuredJwtIssuer
+                ))
+            {
+                throw new InvalidOperationException(
+                    "JWT issuer was not configured."
+                );
+            }
 
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey =
-                    new SymmetricSecurityKey(
-                        Encoding.UTF8.GetBytes(jwtKey)
-                    ),
+            if (string.IsNullOrWhiteSpace(
+                    configuredJwtAudience
+                ))
+            {
+                throw new InvalidOperationException(
+                    "JWT audience was not configured."
+                );
+            }
 
-                ValidateLifetime = true,
+            options.TokenValidationParameters =
+                new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidIssuer = configuredJwtIssuer,
 
-                ClockSkew = TimeSpan.Zero
-            };
-    });
+                    ValidateAudience = true,
+                    ValidAudience = configuredJwtAudience,
+
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey =
+                        new SymmetricSecurityKey(
+                            Encoding.UTF8.GetBytes(
+                                configuredJwtKey
+                            )
+                        ),
+
+                    ValidateLifetime = true,
+
+                    ClockSkew = TimeSpan.Zero
+                };
+        }
+    );
 
 builder.Services.AddAuthorization();
 
@@ -117,7 +186,10 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -135,3 +207,7 @@ app.MapGet(
 app.MapControllers();
 
 app.Run();
+
+public partial class Program
+{
+}

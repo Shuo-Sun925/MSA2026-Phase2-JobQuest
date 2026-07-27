@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using backend.DTOs.JobApplications;
 using backend.DTOs.Progress;
+using backend.Helpers;
 using backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -63,7 +64,9 @@ public class ProgressController(
 
     private bool TryGetCurrentUserId(out int userId)
     {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return int.TryParse(userIdClaim, out userId);
+        return UserClaimsHelper.TryGetUserId(
+            User,
+            out userId
+        );
     }
 }

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using backend.Data;
 using backend.DTOs.Auth;
+using backend.Helpers;
 using backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -72,11 +73,10 @@ public class AuthController : ControllerBase
     public async Task<ActionResult<CurrentUserResponse>>
         GetCurrentUser()
     {
-        var userIdClaim = User.FindFirstValue(
-            ClaimTypes.NameIdentifier
-        );
-
-        if (!int.TryParse(userIdClaim, out var userId))
+        if (!UserClaimsHelper.TryGetUserId(
+                User,
+                out var userId
+            ))
         {
             return Unauthorized(new
             {
