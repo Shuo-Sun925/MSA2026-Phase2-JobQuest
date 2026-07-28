@@ -43,7 +43,7 @@ jobs:
         run: dotnet test ${{ env.TEST_PROJECT }} --configuration Release --no-build
 
       - name: Publish backend
-        run: dotnet publish ${{ env.BACKEND_PROJECT }} --configuration Release --no-build --output ${{ env.PUBLISH_DIR }}
+        run: dotnet publish ${{ env.BACKEND_PROJECT }} --configuration Release --no-restore --output ${{ env.PUBLISH_DIR }}
 
       - name: Azure login
         uses: azure/login@v2
