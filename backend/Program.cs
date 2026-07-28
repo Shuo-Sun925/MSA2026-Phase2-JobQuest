@@ -1,38 +1,63 @@
 using System.Text;
+using System.Text.Json.Serialization;
 using backend.Data;
 using backend.Models;
 using backend.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
-using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
+const string FrontendCorsPolicy = "FrontendCors";
+
+// -------------------------------------------------------
+// Environment
+// -------------------------------------------------------
+
+var isTesting = builder.Environment.IsEnvironment("Testing");
+
+// -------------------------------------------------------
+// CORS configuration
+// -------------------------------------------------------
+
 string[] GetCorsAllowedOrigins(
-    IConfiguration configuration)
+    IConfiguration configuration,
+    IWebHostEnvironment environment)
 {
     var configuredOrigins = configuration
         .GetSection("Cors:AllowedOrigins")
         .Get<string[]>()
-        ?? Array.Empty<string>();
+        ?? [];
 
+    // Supports environment-variable style values such as:
+    // Cors__AllowedOrigins=http://localhost:5173
+    //
+    // Also supports comma-separated or semicolon-separated values.
     if (configuredOrigins.Length == 0)
     {
         var rawOrigins = configuration["Cors:AllowedOrigins"];
 
         if (!string.IsNullOrWhiteSpace(rawOrigins))
         {
-            configuredOrigins = rawOrigins
-                .Split(
-                    [',', ';'],
-                    StringSplitOptions.RemoveEmptyEntries
-                    | StringSplitOptions.TrimEntries
-                );
+            configuredOrigins = rawOrigins.Split(
+                [',', ';'],
+                StringSplitOptions.RemoveEmptyEntries
+                | StringSplitOptions.TrimEntries
+            );
         }
+    }
+
+    // Use the Vite development server by default during local development.
+    if (configuredOrigins.Length == 0
+        && environment.IsDevelopment())
+    {
+        configuredOrigins =
+        [
+            "http://localhost:5173"
+        ];
     }
 
     return configuredOrigins
@@ -40,14 +65,20 @@ string[] GetCorsAllowedOrigins(
             Uri.TryCreate(
                 origin,
                 UriKind.Absolute,
-                out _
+                out var uri
+            )
+            && (
+                uri.Scheme == Uri.UriSchemeHttp
+                || uri.Scheme == Uri.UriSchemeHttps
             )
         )
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .ToArray();
 }
 
-var isTesting = builder.Environment.IsEnvironment("Testing");
+// -------------------------------------------------------
+// Database configuration
+// -------------------------------------------------------
 
 var connectionString =
     builder.Configuration.GetConnectionString(
@@ -64,15 +95,19 @@ if (string.IsNullOrWhiteSpace(connectionString))
     }
 
     connectionString =
-        "Host=localhost;Database=jobquest_testing;Username=test;Password=test";
+        "Host=localhost;"
+        + "Database=jobquest_testing;"
+        + "Username=test;"
+        + "Password=test";
 }
+
+// -------------------------------------------------------
+// JWT configuration
+// -------------------------------------------------------
 
 var jwtKey = builder.Configuration["Jwt:Key"];
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 var jwtAudience = builder.Configuration["Jwt:Audience"];
-var corsAllowedOrigins = GetCorsAllowedOrigins(
-    builder.Configuration
-);
 
 if (string.IsNullOrWhiteSpace(jwtKey))
 {
@@ -83,7 +118,8 @@ if (string.IsNullOrWhiteSpace(jwtKey))
         );
     }
 
-    jwtKey = "super-secret-test-key-123456789012345";
+    jwtKey =
+        "super-secret-test-key-123456789012345";
 }
 
 if (string.IsNullOrWhiteSpace(jwtIssuer))
@@ -110,10 +146,27 @@ if (string.IsNullOrWhiteSpace(jwtAudience))
     jwtAudience = "jobquest-tests";
 }
 
+// -------------------------------------------------------
+// CORS allowed origins
+// -------------------------------------------------------
+
+var corsAllowedOrigins = GetCorsAllowedOrigins(
+    builder.Configuration,
+    builder.Environment
+);
+
+// -------------------------------------------------------
+// Entity Framework Core and PostgreSQL
+// -------------------------------------------------------
+
 builder.Services.AddDbContext<ApplicationDbContext>(
     options =>
         options.UseNpgsql(connectionString)
 );
+
+// -------------------------------------------------------
+// Controllers and JSON configuration
+// -------------------------------------------------------
 
 builder.Services
     .AddControllers()
@@ -124,116 +177,117 @@ builder.Services
         );
     });
 
-if (corsAllowedOrigins.Length > 0)
+// -------------------------------------------------------
+// CORS
+// -------------------------------------------------------
+
+builder.Services.AddCors(options =>
 {
-    builder.Services.AddCors(options =>
-    {
-        options.AddPolicy(
-            "FrontendCors",
-            policy =>
+    options.AddPolicy(
+        FrontendCorsPolicy,
+        policy =>
+        {
+            if (corsAllowedOrigins.Length == 0)
             {
-                policy
-                    .WithOrigins(corsAllowedOrigins)
-                    .AllowAnyHeader()
-                    .AllowAnyMethod();
+                return;
             }
-        );
-    });
-}
+
+            policy
+                .WithOrigins(corsAllowedOrigins)
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        }
+    );
+});
+
+// -------------------------------------------------------
+// Health checks
+// -------------------------------------------------------
 
 builder.Services.AddHealthChecks();
 
+// -------------------------------------------------------
+// OpenAPI and Scalar
+// -------------------------------------------------------
+
 builder.Services.AddOpenApi();
+
+// -------------------------------------------------------
+// Application services
+// -------------------------------------------------------
 
 builder.Services.AddScoped<
     IPasswordHasher<ApplicationUser>,
     PasswordHasher<ApplicationUser>
 >();
 
-builder.Services.AddScoped<ITokenService, TokenService>();
-builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<
+    ITokenService,
+    TokenService
+>();
+
+builder.Services.AddScoped<
+    IAuthService,
+    AuthService
+>();
+
 builder.Services.AddScoped<
     IGamificationService,
     GamificationService
 >();
-builder.Services.AddScoped<IProgressService, ProgressService>();
+
+builder.Services.AddScoped<
+    IProgressService,
+    ProgressService
+>();
+
+// -------------------------------------------------------
+// Authentication and JWT bearer configuration
+// -------------------------------------------------------
 
 builder.Services
-    .AddAuthentication(
-        JwtBearerDefaults.AuthenticationScheme
-    )
-    .AddJwtBearer();
+    .AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme =
+            JwtBearerDefaults.AuthenticationScheme;
 
-builder.Services
-    .AddOptions<JwtBearerOptions>(
-        JwtBearerDefaults.AuthenticationScheme
-    )
-    .Configure<IConfiguration>(
-        (options, configuration) =>
-        {
-            var configuredJwtKey =
-                configuration["Jwt:Key"];
-
-            var configuredJwtIssuer =
-                configuration["Jwt:Issuer"];
-
-            var configuredJwtAudience =
-                configuration["Jwt:Audience"];
-
-            if (string.IsNullOrWhiteSpace(
-                    configuredJwtKey
-                ))
+        options.DefaultChallengeScheme =
+            JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters =
+            new TokenValidationParameters
             {
-                throw new InvalidOperationException(
-                    "JWT key was not configured."
-                );
-            }
+                ValidateIssuer = true,
+                ValidIssuer = jwtIssuer,
 
-            if (string.IsNullOrWhiteSpace(
-                    configuredJwtIssuer
-                ))
-            {
-                throw new InvalidOperationException(
-                    "JWT issuer was not configured."
-                );
-            }
+                ValidateAudience = true,
+                ValidAudience = jwtAudience,
 
-            if (string.IsNullOrWhiteSpace(
-                    configuredJwtAudience
-                ))
-            {
-                throw new InvalidOperationException(
-                    "JWT audience was not configured."
-                );
-            }
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey =
+                    new SymmetricSecurityKey(
+                        Encoding.UTF8.GetBytes(jwtKey)
+                    ),
 
-            options.TokenValidationParameters =
-                new TokenValidationParameters
-                {
-                    ValidateIssuer = true,
-                    ValidIssuer = configuredJwtIssuer,
+                ValidateLifetime = true,
 
-                    ValidateAudience = true,
-                    ValidAudience = configuredJwtAudience,
-
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey =
-                        new SymmetricSecurityKey(
-                            Encoding.UTF8.GetBytes(
-                                configuredJwtKey
-                            )
-                        ),
-
-                    ValidateLifetime = true,
-
-                    ClockSkew = TimeSpan.Zero
-                };
-        }
-    );
+                ClockSkew = TimeSpan.Zero
+            };
+    });
 
 builder.Services.AddAuthorization();
 
+// -------------------------------------------------------
+// Build application
+// -------------------------------------------------------
+
 var app = builder.Build();
+
+// -------------------------------------------------------
+// OpenAPI and Scalar documentation
+// -------------------------------------------------------
 
 if (!app.Environment.IsEnvironment("Testing"))
 {
@@ -245,18 +299,27 @@ if (!app.Environment.IsEnvironment("Testing"))
     });
 }
 
+// -------------------------------------------------------
+// Middleware pipeline
+// -------------------------------------------------------
+
 if (!app.Environment.IsEnvironment("Testing"))
 {
     app.UseHttpsRedirection();
 }
 
+// CORS must run before authentication and authorization.
 if (corsAllowedOrigins.Length > 0)
 {
-    app.UseCors("FrontendCors");
+    app.UseCors(FrontendCorsPolicy);
 }
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// -------------------------------------------------------
+// Endpoints
+// -------------------------------------------------------
 
 app.MapHealthChecks("/health");
 
@@ -274,6 +337,7 @@ app.MapControllers();
 
 app.Run();
 
+// Required by integration tests using WebApplicationFactory<Program>.
 public partial class Program
 {
 }
