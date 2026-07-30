@@ -287,6 +287,72 @@
   box-shadow: inset 0 0 0 1px var(--accent);
 }
 
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.metric-panel {
+  border: 1px solid var(--border);
+  padding: 18px;
+  background: var(--panel-alt-bg);
+  display: grid;
+  gap: 12px;
+}
+
+.metric-panel--wide {
+  grid-column: 1 / -1;
+}
+
+.compact-definition-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+  margin: 0;
+}
+
+.compact-definition-list div {
+  display: grid;
+  gap: 4px;
+}
+
+.compact-definition-list dt {
+  font-size: 0.92rem;
+  color: var(--text-muted);
+}
+
+.compact-definition-list dd {
+  margin: 0;
+  color: var(--text-h);
+}
+
+.achievement-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.achievement-card {
+  border: 1px solid var(--border);
+  padding: 18px;
+  background: var(--panel-alt-bg);
+  display: grid;
+  gap: 14px;
+}
+
+.achievement-card--unlocked {
+  border-color: rgba(16, 185, 129, 0.35);
+  box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.3);
+}
+
+.achievement-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
 @media (max-width: 900px) {
   .app-shell {
     padding: 28px 18px 40px;
@@ -295,7 +361,10 @@
   .connection-grid,
   .session-card__content,
   .application-form-grid,
-  .inline-fields {
+  .inline-fields,
+  .metric-grid,
+  .compact-definition-list,
+  .achievement-grid {
     grid-template-columns: 1fr;
   }
 }

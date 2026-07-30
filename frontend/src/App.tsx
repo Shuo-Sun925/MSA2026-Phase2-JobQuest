@@ -1,9 +1,11 @@
 import "./App.css";
 import { Navigate, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AchievementsPage from "./pages/AchievementsPage";
 import ApplicationsPage from "./pages/ApplicationsPage";
 import DashboardPage from "./pages/DashboardPage";
 import LoginPage from "./pages/LoginPage";
+import ProgressPage from "./pages/ProgressPage";
 import RegisterPage from "./pages/RegisterPage";
 import { useAuthStore } from "./store/useAuthStore";
 
@@ -31,6 +33,22 @@ function App() {
         element={(
           <ProtectedRoute>
             <ApplicationsPage />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path="/progress"
+        element={(
+          <ProtectedRoute>
+            <ProgressPage />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path="/achievements"
+        element={(
+          <ProtectedRoute>
+            <AchievementsPage />
           </ProtectedRoute>
         )}
       />

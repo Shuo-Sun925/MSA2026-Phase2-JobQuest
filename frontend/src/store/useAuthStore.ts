@@ -1,7 +1,9 @@
 import axios from "axios";
 import { create } from "zustand";
 import { configureApiAuth } from "../services/api";
+import { useAchievementsStore } from "./useAchievementsStore";
 import { useJobApplicationsStore } from "./useJobApplicationsStore";
+import { useProgressStore } from "./useProgressStore";
 import type {
 	AuthRequest,
 	AuthSession,
@@ -198,7 +200,9 @@ export const useAuthStore = create<AuthStoreState>((set) => ({
 
 	logout(message = "Local session cleared. The user has been signed out.") {
 		clearStoredSession();
+		useAchievementsStore.getState().resetStore();
 		useJobApplicationsStore.getState().resetStore();
+		useProgressStore.getState().resetStore();
 
 		set({
 			session: null,
@@ -212,7 +216,9 @@ export const useAuthStore = create<AuthStoreState>((set) => ({
 
 	handleUnauthorized() {
 		clearStoredSession();
+		useAchievementsStore.getState().resetStore();
 		useJobApplicationsStore.getState().resetStore();
+		useProgressStore.getState().resetStore();
 
 		set({
 			session: null,

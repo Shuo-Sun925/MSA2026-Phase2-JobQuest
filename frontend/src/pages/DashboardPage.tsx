@@ -55,6 +55,12 @@ export default function DashboardPage() {
 					<Link className="primary-button route-link" to="/applications">
 						Go to Applications
 					</Link>
+					<Link className="secondary-button route-link" to="/progress">
+						Go to Progress
+					</Link>
+					<Link className="secondary-button route-link" to="/achievements">
+						Go to Achievements
+					</Link>
 					<button className="secondary-button" type="button" onClick={() => logout()}>
 						Sign Out
 					</button>
