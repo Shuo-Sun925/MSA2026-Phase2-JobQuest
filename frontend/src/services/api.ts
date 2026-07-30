@@ -1,7 +1,10 @@
 import axios from "axios";
 
+let getAccessToken: (() => string | null) | null = null;
+let handleUnauthorized: (() => void) | null = null;
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:5065/api",
   headers: {
     "Content-Type": "application/json",
   },
@@ -9,7 +12,7 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("token");
+    const token = getAccessToken?.() ?? null;
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -25,17 +28,22 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
+    const hadAccessToken = Boolean(getAccessToken?.());
 
-      if (window.location.pathname !== "/login") {
-        window.location.href = "/login";
-      }
+    if (error.response?.status === 401 && hadAccessToken) {
+      handleUnauthorized?.();
     }
 
     return Promise.reject(error);
   },
 );
+
+export function configureApiAuth(options: {
+  getAccessToken: () => string | null;
+  onUnauthorized: () => void;
+}) {
+  getAccessToken = options.getAccessToken;
+  handleUnauthorized = options.onUnauthorized;
+}
 
 export default api;
