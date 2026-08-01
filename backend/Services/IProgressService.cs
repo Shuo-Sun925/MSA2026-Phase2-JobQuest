@@ -12,5 +12,10 @@ public interface IProgressService
 
     Task<WeeklyGoalProgressResponse> GetWeeklyGoalProgressAsync(int userId);
 
+    Task<ProgressResponse> UpdateWeeklyGoalAsync(
+        int userId,
+        int weeklyGoal
+    );
+
     Task<IReadOnlyList<AchievementResponse>> GetAchievementsAsync(int userId);
 }

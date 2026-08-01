@@ -62,6 +62,26 @@ public class ProgressController(
         return Ok(response);
     }
 
+    [HttpPatch("weekly-goal")]
+    public async Task<ActionResult<ProgressResponse>> UpdateWeeklyGoal(
+        UpdateWeeklyGoalRequest request)
+    {
+        if (!TryGetCurrentUserId(out var userId))
+        {
+            return Unauthorized(new
+            {
+                message = "Invalid authentication token."
+            });
+        }
+
+        var response = await _progressService.UpdateWeeklyGoalAsync(
+            userId,
+            request.WeeklyGoal
+        );
+
+        return Ok(response);
+    }
+
     private bool TryGetCurrentUserId(out int userId)
     {
         return UserClaimsHelper.TryGetUserId(

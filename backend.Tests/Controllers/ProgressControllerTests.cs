@@ -1,7 +1,6 @@
 using backend.Controllers;
 using backend.DTOs.JobApplications;
 using backend.DTOs.Progress;
-using backend.Models;
 using backend.Services;
 using backend.Tests.TestHelpers;
 using Microsoft.AspNetCore.Mvc;
@@ -104,5 +103,57 @@ public class ProgressControllerTests
 
         Assert.Equal(3, response.AppliedThisWeek);
         Assert.False(response.IsGoalMet);
+    }
+
+    [Fact]
+    public async Task UpdateWeeklyGoal_ReturnsUnauthorizedWhenUserClaimIsInvalid()
+    {
+        var controller = new ProgressController(new FakeProgressService())
+        {
+            ControllerContext = ControllerTestHelper.CreateControllerContext(null)
+        };
+
+        var result = await controller.UpdateWeeklyGoal(
+            new UpdateWeeklyGoalRequest
+            {
+                WeeklyGoal = 7
+            }
+        );
+
+        Assert.IsType<UnauthorizedObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task UpdateWeeklyGoal_ReturnsOkFromService()
+    {
+        var service = new FakeProgressService
+        {
+            ProgressResponse = new ProgressResponse
+            {
+                WeeklyGoal = 7,
+                TotalPoints = 120,
+                CurrentLevel = 3,
+                CurrentStreak = 4
+            }
+        };
+
+        var controller = new ProgressController(service)
+        {
+            ControllerContext = ControllerTestHelper.CreateControllerContext(1)
+        };
+
+        var result = await controller.UpdateWeeklyGoal(
+            new UpdateWeeklyGoalRequest
+            {
+                WeeklyGoal = 7
+            }
+        );
+
+        var okResult = Assert.IsType<OkObjectResult>(result.Result);
+        var response = Assert.IsType<ProgressResponse>(okResult.Value);
+
+        Assert.Equal(1, service.LastUserId);
+        Assert.Equal(7, service.LastWeeklyGoal);
+        Assert.Equal(7, response.WeeklyGoal);
     }
 }

@@ -14,6 +14,13 @@
   background: linear-gradient(180deg, #fafcff 0%, #f3f7ff 100%);
 }
 
+.dashboard-shell--dark {
+  background:
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.15), transparent 24%),
+    radial-gradient(circle at 86% 12%, rgba(167, 139, 250, 0.14), transparent 20%),
+    linear-gradient(180deg, #0f172a 0%, #111b31 100%);
+}
+
 .dashboard-shell h1,
 .dashboard-shell h2,
 .dashboard-shell h3,
@@ -42,7 +49,7 @@
 
 .dashboard-brand__image {
   display: block;
-  width: 138px;
+  width: 188px;
   height: auto;
 }
 
@@ -52,7 +59,8 @@
 }
 
 .dashboard-nav__item,
-.dashboard-logout {
+.dashboard-logout,
+.dashboard-theme-toggle {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -66,6 +74,7 @@
 
 .dashboard-nav__item svg,
 .dashboard-logout svg,
+.dashboard-theme-toggle svg,
 .dashboard-add-button svg {
   width: 18px;
   height: 18px;
@@ -73,7 +82,8 @@
 }
 
 .dashboard-nav__item:hover,
-.dashboard-logout:hover {
+.dashboard-logout:hover,
+.dashboard-theme-toggle:hover {
   background: rgba(32, 137, 193, 0.08);
   color: #17395b;
 }
@@ -88,10 +98,26 @@
   min-height: 24px;
 }
 
+.dashboard-sidebar__actions {
+  display: grid;
+  gap: 8px;
+}
+
 .dashboard-logout {
   border: none;
   background: transparent;
   font: inherit;
+  cursor: pointer;
+}
+
+.dashboard-theme-toggle {
+  justify-content: center;
+  border: 1px solid rgba(183, 199, 228, 0.86);
+  background: rgba(255, 255, 255, 0.7);
+  font: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.64rem;
   cursor: pointer;
 }
 
@@ -1234,6 +1260,101 @@
   margin: 0;
 }
 
+.progress-goal-editor {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(243, 248, 255, 0.95), rgba(236, 244, 255, 0.88));
+}
+
+.progress-goal-editor__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.progress-goal-editor__header span {
+  color: #6f8096;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.62rem;
+}
+
+.progress-goal-editor__header strong {
+  color: #1d3248;
+  font-size: 0.96rem;
+}
+
+.progress-goal-editor__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.progress-goal-editor__option,
+.progress-goal-editor__save {
+  border: none;
+  font: inherit;
+}
+
+.progress-goal-editor__option {
+  min-width: 54px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #1e425f;
+  cursor: pointer;
+  transition: background-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.progress-goal-editor__option:hover:not(:disabled) {
+  background: rgba(227, 239, 255, 0.96);
+}
+
+.progress-goal-editor__option--selected {
+  background: linear-gradient(135deg, #106f9f, #0b6296);
+  color: #fff;
+  box-shadow: 0 10px 20px rgba(10, 98, 150, 0.18);
+}
+
+.progress-goal-editor__option:disabled,
+.progress-goal-editor__save:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.progress-goal-editor__save {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #106f9f, #0b6296);
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.68rem;
+  cursor: pointer;
+}
+
+.progress-goal-editor__success,
+.progress-goal-editor__error {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.progress-goal-editor__success {
+  color: #0f8f58;
+}
+
+.progress-goal-editor__error {
+  color: #b42318;
+}
+
 .progress-stage-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -2213,6 +2334,383 @@
   font-size: 0.96rem;
 }
 
+.dashboard-shell--dark .dashboard-sidebar {
+  border-right-color: rgba(87, 105, 140, 0.35);
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.94) 24%, rgba(17, 27, 49, 0.98) 100%);
+}
+
+.dashboard-shell--dark .dashboard-brand__image {
+  filter: drop-shadow(0 16px 28px rgba(14, 165, 233, 0.12));
+}
+
+.dashboard-shell--dark .dashboard-nav__item,
+.dashboard-shell--dark .dashboard-logout,
+.dashboard-shell--dark .dashboard-theme-toggle {
+  color: #ccd7ed;
+}
+
+.dashboard-shell--dark .dashboard-theme-toggle {
+  border-color: rgba(167, 139, 250, 0.28);
+  background: linear-gradient(135deg, rgba(17, 27, 49, 0.96), rgba(32, 49, 81, 0.94));
+}
+
+.dashboard-shell--dark .dashboard-nav__item:hover,
+.dashboard-shell--dark .dashboard-logout:hover,
+.dashboard-shell--dark .dashboard-theme-toggle:hover {
+  background: rgba(14, 165, 233, 0.12);
+  color: #eef5ff;
+}
+
+.dashboard-shell--dark .dashboard-nav__item--active {
+  background: linear-gradient(135deg, #0ea5e9, #a78bfa);
+  color: #081121;
+  box-shadow: 0 18px 32px rgba(14, 165, 233, 0.22);
+}
+
+.dashboard-shell--dark .dashboard-main,
+.dashboard-shell--dark .workspace-main,
+.dashboard-shell--dark .applications-overview,
+.dashboard-shell--dark .application-workspace,
+.dashboard-shell--dark .progress-main,
+.dashboard-shell--dark .achievements-main {
+  color: #d6e3fb;
+}
+
+.dashboard-shell--dark .dashboard-header,
+.dashboard-shell--dark .achievements-hero,
+.dashboard-shell--dark .workspace-topbar,
+.dashboard-shell--dark .application-review__header,
+.dashboard-shell--dark .application-editor__section-header {
+  border-bottom-color: rgba(123, 145, 187, 0.2);
+}
+
+.dashboard-shell--dark .dashboard-header h1,
+.dashboard-shell--dark .dashboard-empty-hero__content h2,
+.dashboard-shell--dark .achievements-hero__copy h1,
+.dashboard-shell--dark .achievement-showcase h3,
+.dashboard-shell--dark .progress-hero__copy h1,
+.dashboard-shell--dark .applications-overview__copy h1,
+.dashboard-shell--dark .applications-overview-card__title-group strong,
+.dashboard-shell--dark .application-hero h1,
+.dashboard-shell--dark .application-library__header h2,
+.dashboard-shell--dark .application-editor__section-header h3,
+.dashboard-shell--dark .application-review__header h3,
+.dashboard-shell--dark .application-review__section h4,
+.dashboard-shell--dark .dashboard-panel__header h3,
+.dashboard-shell--dark .progress-panel__header h2,
+.dashboard-shell--dark .progress-streak-card__header h2,
+.dashboard-shell--dark .progress-stage-card strong,
+.dashboard-shell--dark .progress-insight-card h3,
+.dashboard-shell--dark .workspace-search input,
+.dashboard-shell--dark .workspace-topbar__meta,
+.dashboard-shell--dark .dashboard-kpi strong,
+.dashboard-shell--dark .achievement-latest-card__header strong,
+.dashboard-shell--dark .achievement-latest-card__header h3,
+.dashboard-shell--dark .application-status-strip strong,
+.dashboard-shell--dark .application-review__item strong,
+.dashboard-shell--dark .application-review__notes,
+.dashboard-shell--dark .dashboard-goal-ring strong {
+  color: #f4f7ff;
+}
+
+.dashboard-shell--dark .dashboard-header__eyebrow,
+.dashboard-shell--dark .dashboard-empty-hero__eyebrow,
+.dashboard-shell--dark .progress-hero__eyebrow,
+.dashboard-shell--dark .applications-overview__eyebrow,
+.dashboard-shell--dark .application-hero__eyebrow,
+.dashboard-shell--dark .achievement-showcase__meta,
+.dashboard-shell--dark .achievements-hero__eyebrow,
+.dashboard-shell--dark .progress-panel__header svg,
+.dashboard-shell--dark .progress-streak-card__header svg,
+.dashboard-shell--dark .workspace-search,
+.dashboard-shell--dark .applications-overview-card__meta-item--accent,
+.dashboard-shell--dark .applications-overview-card__meta-item--neutral,
+.dashboard-shell--dark .dashboard-panel__header p,
+.dashboard-shell--dark .dashboard-panel__header a,
+.dashboard-shell--dark .progress-insight-card__link,
+.dashboard-shell--dark .application-editor__alert--info,
+.dashboard-shell--dark .application-editor__section-header,
+.dashboard-shell--dark .dashboard-header h1 span,
+.dashboard-shell--dark .dashboard-empty-hero__content h2 span {
+  color: #a78bfa;
+}
+
+.dashboard-shell--dark .dashboard-header p,
+.dashboard-shell--dark .dashboard-empty-hero__content p,
+.dashboard-shell--dark .dashboard-empty-state,
+.dashboard-shell--dark .dashboard-inline-error,
+.dashboard-shell--dark .dashboard-kpi span,
+.dashboard-shell--dark .dashboard-application-item__body p,
+.dashboard-shell--dark .dashboard-goal-ring span,
+.dashboard-shell--dark .dashboard-empty-hero__glance-card span,
+.dashboard-shell--dark .achievements-hero__copy p,
+.dashboard-shell--dark .achievements-hero__summary-count,
+.dashboard-shell--dark .achievement-showcase__description,
+.dashboard-shell--dark .progress-hero__copy p,
+.dashboard-shell--dark .progress-hero__summary span,
+.dashboard-shell--dark .progress-panel__header p,
+.dashboard-shell--dark .progress-panel__summary-row span,
+.dashboard-shell--dark .progress-panel__caption,
+.dashboard-shell--dark .progress-goal-editor__header span,
+.dashboard-shell--dark .progress-insight-card p,
+.dashboard-shell--dark .progress-insight-card span,
+.dashboard-shell--dark .applications-overview-card__title-group p,
+.dashboard-shell--dark .applications-overview-card__date,
+.dashboard-shell--dark .applications-overview-card__meta-item,
+.dashboard-shell--dark .applications-overview__empty p,
+.dashboard-shell--dark .application-hero p,
+.dashboard-shell--dark .application-hero__meta,
+.dashboard-shell--dark .application-status-strip span,
+.dashboard-shell--dark .application-library__header span,
+.dashboard-shell--dark .application-library__item span,
+.dashboard-shell--dark .application-library__item em,
+.dashboard-shell--dark .application-editor__field span,
+.dashboard-shell--dark .application-editor__wide-field span,
+.dashboard-shell--dark .application-review__header p,
+.dashboard-shell--dark .application-review__item span,
+.dashboard-shell--dark .dashboard-achievement-item span,
+.dashboard-shell--dark .workspace-search input::placeholder {
+  color: #9db0d2;
+}
+
+.dashboard-shell--dark .dashboard-panel,
+.dashboard-shell--dark .dashboard-empty-hero__glance-card,
+.dashboard-shell--dark .dashboard-kpi,
+.dashboard-shell--dark .achievement-showcase,
+.dashboard-shell--dark .achievement-latest-card,
+.dashboard-shell--dark .applications-overview-card,
+.dashboard-shell--dark .applications-overview__empty,
+.dashboard-shell--dark .application-status-strip,
+.dashboard-shell--dark .application-library__item,
+.dashboard-shell--dark .application-editor--create .application-editor__card,
+.dashboard-shell--dark .application-editor__section,
+.dashboard-shell--dark .application-review__item,
+.dashboard-shell--dark .progress-panel,
+.dashboard-shell--dark .progress-stage-card,
+.dashboard-shell--dark .progress-insight-card,
+.dashboard-shell--dark .workspace-topbar,
+.dashboard-shell--dark .dashboard-goal-ring > div {
+  border: 1px solid rgba(168, 187, 255, 0.12);
+  background: linear-gradient(180deg, rgba(21, 32, 58, 0.98), rgba(16, 25, 45, 0.95));
+  box-shadow: 0 18px 32px rgba(2, 8, 23, 0.34);
+}
+
+.dashboard-shell--dark .dashboard-kpi--purple {
+  box-shadow: inset 0 -2px 0 rgba(167, 139, 250, 0.84), 0 18px 32px rgba(2, 8, 23, 0.34);
+}
+
+.dashboard-shell--dark .dashboard-kpi--cyan {
+  box-shadow: inset 0 -2px 0 rgba(14, 165, 233, 0.9), 0 18px 32px rgba(2, 8, 23, 0.34);
+}
+
+.dashboard-shell--dark .dashboard-kpi--violet {
+  box-shadow: inset 0 -2px 0 rgba(222, 135, 18, 0.88), 0 18px 32px rgba(2, 8, 23, 0.34);
+}
+
+.dashboard-shell--dark .dashboard-kpi--violet strong {
+  color: #ffcf8c;
+}
+
+.dashboard-shell--dark .dashboard-application-item__avatar,
+.dashboard-shell--dark .applications-overview-card__logo,
+.dashboard-shell--dark .achievement-showcase__icon-shell,
+.dashboard-shell--dark .achievement-showcase__badge,
+.dashboard-shell--dark .dashboard-achievement-item,
+.dashboard-shell--dark .dashboard-panel__button,
+.dashboard-shell--dark .application-status-strip__action,
+.dashboard-shell--dark .application-editor__ghost-button,
+.dashboard-shell--dark .progress-goal-editor__option,
+.dashboard-shell--dark .application-editor input,
+.dashboard-shell--dark .application-editor select,
+.dashboard-shell--dark .application-editor textarea,
+.dashboard-shell--dark .application-editor__field-control,
+.dashboard-shell--dark .application-editor__suggestions {
+  border-color: rgba(136, 156, 198, 0.16);
+  background: rgba(30, 44, 72, 0.96);
+  color: #dbe7fb;
+}
+
+.dashboard-shell--dark .dashboard-panel__button,
+.dashboard-shell--dark .application-status-strip__action,
+.dashboard-shell--dark .application-editor__ghost-button,
+.dashboard-shell--dark .progress-goal-editor__option {
+  color: #d9e6ff;
+}
+
+.dashboard-shell--dark .dashboard-panel__button:hover,
+.dashboard-shell--dark .application-status-strip__action:hover,
+.dashboard-shell--dark .application-library__item:hover,
+.dashboard-shell--dark .application-library__item--active,
+.dashboard-shell--dark .progress-goal-editor__option:hover:not(:disabled),
+.dashboard-shell--dark .applications-overview-card:hover {
+  border-color: rgba(14, 165, 233, 0.42);
+  box-shadow: 0 18px 32px rgba(14, 165, 233, 0.12);
+}
+
+.dashboard-shell--dark .dashboard-empty-hero__orbit,
+.dashboard-shell--dark .achievements-hero__summary-bar,
+.dashboard-shell--dark .progress-panel__bar,
+.dashboard-shell--dark .dashboard-level-card__progress {
+  background: rgba(111, 136, 182, 0.2);
+}
+
+.dashboard-shell--dark .dashboard-empty-hero__planet {
+  background: radial-gradient(circle at top, rgba(23, 35, 60, 0.98), rgba(15, 23, 42, 0.96));
+  color: #8bcff7;
+  box-shadow: 0 22px 38px rgba(2, 8, 23, 0.34);
+}
+
+.dashboard-shell--dark .dashboard-empty-hero__badge--top {
+  background: linear-gradient(180deg, #0ea5e9, #0284c7);
+  color: #eff7ff;
+}
+
+.dashboard-shell--dark .dashboard-empty-hero__badge--bottom {
+  background: linear-gradient(180deg, #a78bfa, #8b5cf6);
+}
+
+.dashboard-shell--dark .dashboard-level-card,
+.dashboard-shell--dark .achievement-collection-card,
+.dashboard-shell--dark .progress-streak-card {
+  box-shadow: 0 24px 42px rgba(2, 8, 23, 0.38);
+}
+
+.dashboard-shell--dark .achievement-showcase--unlocked,
+.dashboard-shell--dark .achievement-showcase--locked,
+.dashboard-shell--dark .achievement-showcase--highlighted,
+.dashboard-shell--dark .applications-overview-card,
+.dashboard-shell--dark .application-library__item,
+.dashboard-shell--dark .application-review__item {
+  border-color: rgba(136, 156, 198, 0.14);
+}
+
+.dashboard-shell--dark .achievement-showcase--locked {
+  opacity: 0.82;
+}
+
+.dashboard-shell--dark .achievement-showcase--highlighted {
+  background: linear-gradient(180deg, rgba(61, 43, 104, 0.98), rgba(36, 29, 68, 0.96));
+  border-color: rgba(167, 139, 250, 0.3);
+}
+
+.dashboard-shell--dark .achievement-showcase__icon-core,
+.dashboard-shell--dark .dashboard-achievement-item__icon {
+  background: linear-gradient(180deg, rgba(27, 69, 114, 0.98), rgba(14, 165, 233, 0.62));
+  color: #f4f8ff;
+}
+
+.dashboard-shell--dark .achievement-showcase--highlighted .achievement-showcase__icon-core {
+  background: linear-gradient(180deg, rgba(167, 139, 250, 0.9), rgba(102, 76, 183, 0.92));
+}
+
+.dashboard-shell--dark .progress-goal-editor__option--selected,
+.dashboard-shell--dark .applications-overview__filter--active,
+.dashboard-shell--dark .progress-goal-editor__save,
+.dashboard-shell--dark .applications-overview__add-button,
+.dashboard-shell--dark .dashboard-add-button,
+.dashboard-shell--dark .dashboard-empty-hero__button,
+.dashboard-shell--dark .application-editor__primary-button {
+  background: linear-gradient(135deg, #0ea5e9, #a78bfa);
+  color: #081121;
+  box-shadow: 0 18px 30px rgba(14, 165, 233, 0.2);
+}
+
+.dashboard-shell--dark .applications-overview__filter {
+  background: rgba(27, 40, 66, 0.95);
+  color: #b6c7e3;
+}
+
+.dashboard-shell--dark .applications-overview-card__pill--saved,
+.dashboard-shell--dark .dashboard-status-pill--neutral {
+  background: rgba(120, 144, 184, 0.22);
+  color: #dbe7fb;
+}
+
+.dashboard-shell--dark .applications-overview-card__pill--applied,
+.dashboard-shell--dark .dashboard-status-pill--applied {
+  background: rgba(14, 165, 233, 0.18);
+  color: #7dd8ff;
+}
+
+.dashboard-shell--dark .applications-overview-card__pill--assessment {
+  background: rgba(111, 148, 255, 0.18);
+  color: #b4c5ff;
+}
+
+.dashboard-shell--dark .applications-overview-card__pill--interview,
+.dashboard-shell--dark .dashboard-status-pill--interview {
+  background: rgba(167, 139, 250, 0.2);
+  color: #d4c6ff;
+}
+
+.dashboard-shell--dark .applications-overview-card__pill--offer,
+.dashboard-shell--dark .dashboard-status-pill--offer {
+  background: rgba(222, 135, 18, 0.18);
+  color: #ffd18a;
+}
+
+.dashboard-shell--dark .applications-overview-card__pill--rejected,
+.dashboard-shell--dark .dashboard-status-pill--rejected,
+.dashboard-shell--dark .applications-overview-card__meta-item--danger,
+.dashboard-shell--dark .application-hero__danger {
+  background: rgba(255, 124, 124, 0.12);
+  color: #ff9a9a;
+}
+
+.dashboard-shell--dark .progress-goal-editor__success {
+  background: rgba(14, 165, 233, 0.14);
+  color: #9adbff;
+}
+
+.dashboard-shell--dark .progress-goal-editor__error,
+.dashboard-shell--dark .application-inline-error,
+.dashboard-shell--dark .application-editor__field-error,
+.dashboard-shell--dark .dashboard-inline-error {
+  background: rgba(255, 124, 124, 0.12);
+  color: #ffb3b3;
+}
+
+.dashboard-shell--dark .application-editor__alert--error {
+  border-color: rgba(255, 124, 124, 0.24);
+  background: linear-gradient(180deg, rgba(95, 34, 40, 0.98), rgba(73, 26, 31, 0.96));
+  color: #ffc3c3;
+}
+
+.dashboard-shell--dark .application-editor__alert--info {
+  border-color: rgba(14, 165, 233, 0.24);
+  background: linear-gradient(180deg, rgba(20, 49, 82, 0.98), rgba(18, 39, 67, 0.96));
+}
+
+.dashboard-shell--dark .application-editor__required {
+  background: rgba(255, 124, 124, 0.16);
+  color: #ffb3b3;
+}
+
+.dashboard-shell--dark .application-editor__field--error input,
+.dashboard-shell--dark .application-editor__field--error select,
+.dashboard-shell--dark .application-editor__field--error textarea,
+.dashboard-shell--dark .application-editor__field--error .application-editor__field-control {
+  border-color: rgba(255, 124, 124, 0.38);
+  background: rgba(73, 26, 31, 0.88);
+}
+
+.dashboard-shell--dark .application-editor input:focus,
+.dashboard-shell--dark .application-editor select:focus,
+.dashboard-shell--dark .application-editor textarea:focus,
+.dashboard-shell--dark .application-editor__field-control:focus-within {
+  border-color: rgba(14, 165, 233, 0.62);
+  box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.16);
+}
+
+.dashboard-shell--dark .application-editor__suggestion {
+  color: #e5eefc;
+}
+
+.dashboard-shell--dark .application-editor__suggestion:hover {
+  background: rgba(14, 165, 233, 0.12);
+}
+
 @media (max-width: 1180px) {
   .dashboard-content-grid {
     grid-template-columns: 1fr;
@@ -2282,6 +2780,31 @@
   border-radius: 0;
   background: #f6f8fe;
   box-shadow: none;
+}
+
+.auth-theme-toggle {
+  position: absolute;
+  top: 22px;
+  right: 24px;
+  z-index: 5;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid rgba(183, 199, 228, 0.86);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.76);
+  color: #17395b;
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.auth-theme-toggle:hover {
+  transform: translateY(-1px);
 }
 
 .auth-layout--login {
@@ -2803,6 +3326,104 @@
   font-size: 0.95rem;
 }
 
+.app-shell--auth-dark .auth-layout {
+  background:
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.15), transparent 24%),
+    radial-gradient(circle at 84% 12%, rgba(167, 139, 250, 0.14), transparent 22%),
+    linear-gradient(180deg, #0f172a 0%, #111b31 100%);
+}
+
+.app-shell--auth-dark .auth-theme-toggle {
+  border-color: rgba(167, 139, 250, 0.28);
+  background: rgba(15, 23, 42, 0.76);
+  color: #eef5ff;
+}
+
+.app-shell--auth-dark .auth-layout__visual--login {
+  background:
+    radial-gradient(circle at 0% 75%, rgba(14, 165, 233, 0.18), transparent 32%),
+    radial-gradient(circle at 82% 68%, rgba(167, 139, 250, 0.14), transparent 22%),
+    linear-gradient(180deg, #101b31 0%, #172844 100%);
+}
+
+.app-shell--auth-dark .auth-layout__visual--register {
+  background:
+    radial-gradient(circle at 100% 100%, rgba(14, 165, 233, 0.18), transparent 35%),
+    radial-gradient(circle at 20% 10%, rgba(167, 139, 250, 0.12), transparent 24%),
+    linear-gradient(180deg, #0f172a 0%, #182949 100%);
+  color: rgba(244, 247, 255, 0.95);
+}
+
+.app-shell--auth-dark .auth-layout__panel--login,
+.app-shell--auth-dark .auth-layout__panel--register {
+  background:
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.08), transparent 28%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.96) 0%, rgba(17, 27, 49, 0.98) 100%);
+}
+
+.app-shell--auth-dark .auth-panel__corner,
+.app-shell--auth-dark .auth-panel__sun {
+  color: rgba(208, 220, 246, 0.72);
+}
+
+.app-shell--auth-dark .auth-panel__header h2,
+.app-shell--auth-dark .auth-copy h1,
+.app-shell--auth-dark .auth-field__control input,
+.app-shell--auth-dark .auth-register-card {
+  color: #f4f7ff;
+}
+
+.app-shell--auth-dark .auth-copy__eyebrow,
+.app-shell--auth-dark .auth-copy h1 span,
+.app-shell--auth-dark .auth-panel__footer a,
+.app-shell--auth-dark .auth-panel__footer--centered a {
+  color: #a78bfa;
+}
+
+.app-shell--auth-dark .auth-panel__header p,
+.app-shell--auth-dark .auth-copy__vertical,
+.app-shell--auth-dark .auth-field > span,
+.app-shell--auth-dark .auth-field__icon,
+.app-shell--auth-dark .auth-field__control input::placeholder,
+.app-shell--auth-dark .auth-panel__footer,
+.app-shell--auth-dark .auth-panel__copyright {
+  color: #9db0d2;
+}
+
+.app-shell--auth-dark .auth-copy--register p {
+  color: rgba(225, 237, 255, 0.82);
+}
+
+.app-shell--auth-dark .auth-register-card {
+  background: linear-gradient(180deg, rgba(21, 32, 58, 0.98), rgba(16, 25, 45, 0.95));
+  box-shadow: 0 24px 42px rgba(2, 8, 23, 0.36);
+}
+
+.app-shell--auth-dark .auth-field__control {
+  border-color: rgba(136, 156, 198, 0.18);
+  background: rgba(30, 44, 72, 0.96);
+}
+
+.app-shell--auth-dark .auth-field__control:focus-within {
+  border-color: rgba(14, 165, 233, 0.62);
+  box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.16);
+  background: rgba(36, 52, 84, 0.98);
+}
+
+.app-shell--auth-dark .auth-submit-button {
+  background: linear-gradient(135deg, #0ea5e9, #a78bfa);
+  color: #081121;
+  box-shadow: 0 18px 30px rgba(14, 165, 233, 0.22);
+}
+
+.app-shell--auth-dark .auth-panel__footer {
+  border-top-color: rgba(123, 145, 187, 0.2);
+}
+
+.app-shell--auth-dark .auth-form__error {
+  color: #ffb3b3;
+}
+
 .auth-card__footer {
   margin-top: 20px;
 }
@@ -3240,6 +3861,11 @@
     min-height: 200px;
   }
 
+  .auth-theme-toggle {
+    top: 16px;
+    right: 20px;
+  }
+
   .connection-grid,
   .session-card__content,
   .application-form-grid,
@@ -3414,5 +4040,13 @@
   .auth-panel__corner {
     top: 14px;
     right: 18px;
+  }
+
+  .auth-theme-toggle {
+    top: 12px;
+    right: 14px;
+    min-height: 38px;
+    padding: 0 12px;
+    font-size: 0.62rem;
   }
 }

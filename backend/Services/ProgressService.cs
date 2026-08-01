@@ -12,6 +12,8 @@ public class ProgressService(
     : IProgressService
 {
     private const int DefaultWeeklyGoal = 5;
+    private const int MinimumWeeklyGoal = 1;
+    private const int MaximumWeeklyGoal = 20;
 
     private readonly ApplicationDbContext _context = context;
 
@@ -28,14 +30,7 @@ public class ProgressService(
             return CreateDefaultProgressResponse();
         }
 
-        return new ProgressResponse
-        {
-            TotalPoints = progress.TotalPoints,
-            CurrentLevel = progress.CurrentLevel,
-            CurrentStreak = progress.CurrentStreak,
-            LastActivityDate = progress.LastActivityDate,
-            WeeklyGoal = NormalizeWeeklyGoal(progress.WeeklyGoal)
-        };
+        return MapToProgressResponse(progress);
     }
 
     public async Task<ProgressSummaryResponse> GetProgressSummaryAsync(int userId)
@@ -104,6 +99,29 @@ public class ProgressService(
         };
     }
 
+    public async Task<ProgressResponse> UpdateWeeklyGoalAsync(
+        int userId,
+        int weeklyGoal)
+    {
+        if (weeklyGoal < MinimumWeeklyGoal
+            || weeklyGoal > MaximumWeeklyGoal)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(weeklyGoal),
+                $"Weekly goal must be between {MinimumWeeklyGoal} and {MaximumWeeklyGoal}."
+            );
+        }
+
+        var progress = await GetOrCreateProgressAsync(userId);
+
+        progress.WeeklyGoal = weeklyGoal;
+        progress.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        return MapToProgressResponse(progress);
+    }
+
     public async Task<IReadOnlyList<AchievementResponse>> GetAchievementsAsync(int userId)
     {
         var achievements = await _context.Achievements
@@ -154,9 +172,51 @@ public class ProgressService(
         };
     }
 
+    private static ProgressResponse MapToProgressResponse(
+        UserProgress progress)
+    {
+        return new ProgressResponse
+        {
+            TotalPoints = progress.TotalPoints,
+            CurrentLevel = progress.CurrentLevel,
+            CurrentStreak = progress.CurrentStreak,
+            LastActivityDate = progress.LastActivityDate,
+            WeeklyGoal = NormalizeWeeklyGoal(progress.WeeklyGoal)
+        };
+    }
+
     private static int NormalizeWeeklyGoal(int weeklyGoal)
     {
         return weeklyGoal > 0 ? weeklyGoal : DefaultWeeklyGoal;
+    }
+
+    private async Task<UserProgress> GetOrCreateProgressAsync(int userId)
+    {
+        var progress = await _context.UserProgress
+            .FirstOrDefaultAsync(existingProgress =>
+                existingProgress.UserId == userId
+            );
+
+        if (progress is not null)
+        {
+            return progress;
+        }
+
+        progress = new UserProgress
+        {
+            UserId = userId,
+            TotalPoints = 0,
+            CurrentLevel = 1,
+            CurrentStreak = 0,
+            LastActivityDate = null,
+            WeeklyGoal = DefaultWeeklyGoal,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        _context.UserProgress.Add(progress);
+
+        return progress;
     }
 
     private static int CountByStatus(

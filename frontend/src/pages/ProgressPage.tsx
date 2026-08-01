@@ -1,8 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import logo from "../assets/logo.png";
+import { useDashboardTheme } from "../hooks/useDashboardTheme";
 import { useAuthStore } from "../store/useAuthStore";
 import { useProgressStore } from "../store/useProgressStore";
+
+const WEEKLY_GOAL_OPTIONS = [3, 5, 7, 10] as const;
 
 function DashboardIcon() {
 	return (
@@ -140,6 +143,7 @@ function formatDateLabel(value: string | null) {
 
 export default function ProgressPage() {
 	const { logout } = useAuthStore();
+	const { theme, toggleTheme } = useDashboardTheme();
 	const progress = useProgressStore((state) => state.progress);
 	const summary = useProgressStore((state) => state.summary);
 	const weeklyGoalProgress = useProgressStore((state) => state.weeklyGoalProgress);
@@ -154,15 +158,21 @@ export default function ProgressPage() {
 		(state) => state.isLoadingWeeklyGoalProgress,
 	);
 	const requestError = useProgressStore((state) => state.requestError);
+	const isUpdatingWeeklyGoal = useProgressStore((state) => state.isUpdatingWeeklyGoal);
+	const weeklyGoalUpdateError = useProgressStore((state) => state.weeklyGoalUpdateError);
+	const weeklyGoalUpdateSuccess = useProgressStore((state) => state.weeklyGoalUpdateSuccess);
 	const loadProgress = useProgressStore((state) => state.loadProgress);
 	const loadSummary = useProgressStore((state) => state.loadSummary);
 	const loadWeeklyGoalProgress = useProgressStore((state) => state.loadWeeklyGoalProgress);
+	const updateWeeklyGoal = useProgressStore((state) => state.updateWeeklyGoal);
+	const clearWeeklyGoalUpdateState = useProgressStore((state) => state.clearWeeklyGoalUpdateState);
 	const isAnyLoading =
 		isLoadingProgress || isLoadingSummary || isLoadingWeeklyGoalProgress;
 	const totalPoints = progress?.totalPoints ?? summary?.totalPoints ?? 0;
 	const currentLevel = progress?.currentLevel ?? summary?.currentLevel ?? 1;
 	const currentStreak = progress?.currentStreak ?? summary?.currentStreak ?? 0;
 	const weeklyGoal = weeklyGoalProgress?.weeklyGoal ?? summary?.weeklyGoal ?? progress?.weeklyGoal ?? 5;
+	const [selectedWeeklyGoal, setSelectedWeeklyGoal] = useState(weeklyGoal);
 	const appliedThisWeek = weeklyGoalProgress?.appliedThisWeek ?? summary?.weeklyGoalProgress ?? 0;
 	const remainingApplications = weeklyGoalProgress?.remainingApplications ?? summary?.remainingApplications ?? Math.max(weeklyGoal - appliedThisWeek, 0);
 	const isGoalMet = weeklyGoalProgress?.isGoalMet ?? summary?.isGoalMet ?? false;
@@ -177,6 +187,10 @@ export default function ProgressPage() {
 	const levelProgressPercent = Math.min(100, Math.round((totalPoints / nextLevelTarget) * 100));
 	const weeklyProgressPercent = Math.min(100, Math.round((appliedThisWeek / Math.max(weeklyGoal, 1)) * 100));
 	const isReady = hasLoadedProgress || hasLoadedSummary || hasLoadedWeeklyGoalProgress;
+	const weeklyGoalCompletionText = `${appliedThisWeek} of ${weeklyGoal} applications completed`;
+	const isSaveDisabled = isUpdatingWeeklyGoal || selectedWeeklyGoal === weeklyGoal;
+	const dashboardShellClassName =
+		theme === "dark" ? "dashboard-shell dashboard-shell--dark" : "dashboard-shell";
 
 	useEffect(() => {
 		if (!hasLoadedProgress) {
@@ -199,8 +213,20 @@ export default function ProgressPage() {
 		loadWeeklyGoalProgress,
 	]);
 
+	useEffect(() => {
+		setSelectedWeeklyGoal(weeklyGoal);
+	}, [weeklyGoal]);
+
+	async function handleSaveWeeklyGoal() {
+		try {
+			await updateWeeklyGoal(selectedWeeklyGoal);
+		} catch {
+			return;
+		}
+	}
+
 	return (
-		<main className="dashboard-shell">
+		<main className={dashboardShellClassName}>
 			<aside className="dashboard-sidebar">
 				<div className="dashboard-brand" aria-label="JobQuest">
 					<img className="dashboard-brand__image" src={logo} alt="JobQuest" />
@@ -227,10 +253,21 @@ export default function ProgressPage() {
 
 				<div className="dashboard-sidebar__spacer" />
 
-				<button className="dashboard-logout" type="button" onClick={() => logout()}>
-					<LogoutIcon />
-					<span>Logout</span>
-				</button>
+				<div className="dashboard-sidebar__actions">
+					<button
+						className="dashboard-theme-toggle"
+						type="button"
+						onClick={toggleTheme}
+						aria-pressed={theme === "dark"}
+					>
+						<span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
+					</button>
+
+					<button className="dashboard-logout" type="button" onClick={() => logout()}>
+						<LogoutIcon />
+						<span>Logout</span>
+					</button>
+				</div>
 			</aside>
 
 			<section className="dashboard-main progress-main">
@@ -308,8 +345,53 @@ export default function ProgressPage() {
 									</div>
 
 									<div className="progress-panel__summary-row">
-										<strong>{appliedThisWeek} applications this week</strong>
+										<strong>{weeklyGoalCompletionText}</strong>
 										<span>{weeklyGoal} target</span>
+									</div>
+
+									<div className="progress-goal-editor">
+										<div className="progress-goal-editor__header">
+											<span>Current weekly goal</span>
+											<strong>{weeklyGoal} applications</strong>
+										</div>
+
+										<div className="progress-goal-editor__options" role="group" aria-label="Weekly goal options">
+											{WEEKLY_GOAL_OPTIONS.map((goalOption) => (
+												<button
+													key={goalOption}
+													className={
+														goalOption === selectedWeeklyGoal
+															? "progress-goal-editor__option progress-goal-editor__option--selected"
+															: "progress-goal-editor__option"
+													}
+													type="button"
+													onClick={() => {
+														clearWeeklyGoalUpdateState();
+														setSelectedWeeklyGoal(goalOption);
+													}}
+													disabled={isUpdatingWeeklyGoal}
+												>
+													{goalOption}
+												</button>
+											))}
+										</div>
+
+										<button
+											className="progress-goal-editor__save"
+											type="button"
+											onClick={() => void handleSaveWeeklyGoal()}
+											disabled={isSaveDisabled}
+										>
+											{isUpdatingWeeklyGoal ? "Saving..." : "Save goal"}
+										</button>
+
+										{weeklyGoalUpdateSuccess ? (
+											<p className="progress-goal-editor__success">{weeklyGoalUpdateSuccess}</p>
+										) : null}
+
+										{weeklyGoalUpdateError ? (
+											<p className="progress-goal-editor__error">{weeklyGoalUpdateError}</p>
+										) : null}
 									</div>
 									{weeklyGoalProgress ? (
 										<p className="progress-panel__caption">

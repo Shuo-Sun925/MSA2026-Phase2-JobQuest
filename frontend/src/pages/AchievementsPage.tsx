@@ -6,6 +6,7 @@ import interviewUnlockedIcon from "../assets/interview-unlocked.png";
 import jobHunterIcon from "../assets/job-hunter.png";
 import logo from "../assets/logo.png";
 import offerHunterIcon from "../assets/offer-hunter.png";
+import { useDashboardTheme } from "../hooks/useDashboardTheme";
 import { useAuthStore } from "../store/useAuthStore";
 import { useAchievementsStore } from "../store/useAchievementsStore";
 
@@ -149,6 +150,7 @@ function formatAchievementDate(value: string | null) {
 
 export default function AchievementsPage() {
 	const { logout } = useAuthStore();
+	const { theme, toggleTheme } = useDashboardTheme();
 	const achievements = useAchievementsStore((state) => state.achievements);
 	const hasLoadedAchievements = useAchievementsStore((state) => state.hasLoadedAchievements);
 	const isLoadingAchievements = useAchievementsStore((state) => state.isLoadingAchievements);
@@ -161,6 +163,8 @@ export default function AchievementsPage() {
 		100,
 		Math.round((unlockedCount / Math.max(achievements.length, 1)) * 100),
 	);
+	const dashboardShellClassName =
+		theme === "dark" ? "dashboard-shell dashboard-shell--dark" : "dashboard-shell";
 
 	useEffect(() => {
 		if (!hasLoadedAchievements && !isLoadingAchievements) {
@@ -169,7 +173,7 @@ export default function AchievementsPage() {
 	}, [hasLoadedAchievements, isLoadingAchievements, loadAchievements]);
 
 	return (
-		<main className="dashboard-shell">
+		<main className={dashboardShellClassName}>
 			<aside className="dashboard-sidebar">
 				<div className="dashboard-brand" aria-label="JobQuest">
 					<img className="dashboard-brand__image" src={logo} alt="JobQuest" />
@@ -196,10 +200,21 @@ export default function AchievementsPage() {
 
 				<div className="dashboard-sidebar__spacer" />
 
-				<button className="dashboard-logout" type="button" onClick={() => logout()}>
-					<LogoutIcon />
-					<span>Logout</span>
-				</button>
+				<div className="dashboard-sidebar__actions">
+					<button
+						className="dashboard-theme-toggle"
+						type="button"
+						onClick={toggleTheme}
+						aria-pressed={theme === "dark"}
+					>
+						<span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
+					</button>
+
+					<button className="dashboard-logout" type="button" onClick={() => logout()}>
+						<LogoutIcon />
+						<span>Logout</span>
+					</button>
+				</div>
 			</aside>
 
 			<section className="dashboard-main achievements-main">

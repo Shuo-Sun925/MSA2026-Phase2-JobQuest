@@ -4,6 +4,7 @@ import {
 	fetchProgress,
 	fetchProgressSummary,
 	fetchWeeklyGoalProgress,
+	updateWeeklyGoal as updateWeeklyGoalRequest,
 } from "../services/progressService";
 import type {
 	ProgressResponse,
@@ -21,11 +22,16 @@ interface ProgressStoreState {
 	isLoadingProgress: boolean;
 	isLoadingSummary: boolean;
 	isLoadingWeeklyGoalProgress: boolean;
+	isUpdatingWeeklyGoal: boolean;
 	requestError: string;
 	statusMessage: string;
+	weeklyGoalUpdateError: string;
+	weeklyGoalUpdateSuccess: string;
 	loadProgress: () => Promise<ProgressResponse>;
 	loadSummary: () => Promise<ProgressSummaryResponse>;
 	loadWeeklyGoalProgress: () => Promise<WeeklyGoalProgressResponse>;
+	updateWeeklyGoal: (weeklyGoal: number) => Promise<ProgressResponse>;
+	clearWeeklyGoalUpdateState: () => void;
 	resetStore: () => void;
 	resetStatus: (message?: string) => void;
 }
@@ -43,8 +49,11 @@ function createInitialProgressState() {
 		isLoadingProgress: false,
 		isLoadingSummary: false,
 		isLoadingWeeklyGoalProgress: false,
+		isUpdatingWeeklyGoal: false,
 		requestError: "",
 		statusMessage: INITIAL_STATUS_MESSAGE,
+		weeklyGoalUpdateError: "",
+		weeklyGoalUpdateSuccess: "",
 	};
 }
 
@@ -78,6 +87,9 @@ function getProgressErrorMessage(
 		}
 
 		switch (error.response.status) {
+			case 400:
+				return "The submitted weekly goal is invalid.";
+
 			case 401:
 				return "The current session is no longer authorized.";
 
@@ -102,6 +114,48 @@ function getProgressErrorMessage(
 	return fallbackMessage;
 }
 
+function updateSummaryWeeklyGoal(
+	summary: ProgressSummaryResponse | null,
+	weeklyGoal: number,
+): ProgressSummaryResponse | null {
+	if (!summary) {
+		return null;
+	}
+
+	const remainingApplications = Math.max(
+		weeklyGoal - summary.weeklyGoalProgress,
+		0,
+	);
+
+	return {
+		...summary,
+		weeklyGoal,
+		remainingApplications,
+		isGoalMet: summary.weeklyGoalProgress >= weeklyGoal,
+	};
+}
+
+function updateWeeklyGoalProgressState(
+	weeklyGoalProgress: WeeklyGoalProgressResponse | null,
+	weeklyGoal: number,
+): WeeklyGoalProgressResponse | null {
+	if (!weeklyGoalProgress) {
+		return null;
+	}
+
+	const remainingApplications = Math.max(
+		weeklyGoal - weeklyGoalProgress.appliedThisWeek,
+		0,
+	);
+
+	return {
+		...weeklyGoalProgress,
+		weeklyGoal,
+		remainingApplications,
+		isGoalMet: weeklyGoalProgress.appliedThisWeek >= weeklyGoal,
+	};
+}
+
 export const useProgressStore = create<ProgressStoreState>((set, get) => ({
 	...createInitialProgressState(),
 
@@ -113,6 +167,7 @@ export const useProgressStore = create<ProgressStoreState>((set, get) => ({
 		set({
 			isLoadingProgress: true,
 			requestError: "",
+			weeklyGoalUpdateError: "",
 			statusMessage: "Loading progress...",
 		});
 
@@ -148,6 +203,7 @@ export const useProgressStore = create<ProgressStoreState>((set, get) => ({
 		set({
 			isLoadingSummary: true,
 			requestError: "",
+			weeklyGoalUpdateError: "",
 			statusMessage: "Loading progress summary...",
 		});
 
@@ -186,6 +242,7 @@ export const useProgressStore = create<ProgressStoreState>((set, get) => ({
 		set({
 			isLoadingWeeklyGoalProgress: true,
 			requestError: "",
+			weeklyGoalUpdateError: "",
 			statusMessage: "Loading weekly goal progress...",
 		});
 
@@ -214,6 +271,59 @@ export const useProgressStore = create<ProgressStoreState>((set, get) => ({
 		} finally {
 			set({ isLoadingWeeklyGoalProgress: false });
 		}
+	},
+
+	async updateWeeklyGoal(weeklyGoal) {
+		if (get().isUpdatingWeeklyGoal) {
+			return get().progress ?? await fetchProgress();
+		}
+
+		set({
+			isUpdatingWeeklyGoal: true,
+			weeklyGoalUpdateError: "",
+			weeklyGoalUpdateSuccess: "",
+			requestError: "",
+			statusMessage: "Saving weekly goal...",
+		});
+
+		try {
+			const progress = await updateWeeklyGoalRequest({ weeklyGoal });
+
+			set((state) => ({
+				progress,
+				hasLoadedProgress: true,
+				summary: updateSummaryWeeklyGoal(state.summary, progress.weeklyGoal),
+				weeklyGoalProgress: updateWeeklyGoalProgressState(
+					state.weeklyGoalProgress,
+					progress.weeklyGoal,
+				),
+				weeklyGoalUpdateSuccess: `Weekly goal updated to ${progress.weeklyGoal} applications.`,
+				statusMessage: "Weekly goal updated successfully.",
+			}));
+
+			return progress;
+		} catch (error) {
+			const message = getProgressErrorMessage(
+				error,
+				"Failed to update the weekly goal.",
+			);
+
+			set({
+				weeklyGoalUpdateError: message,
+				statusMessage: "Weekly goal update failed.",
+			});
+
+			throw error;
+		} finally {
+			set({ isUpdatingWeeklyGoal: false });
+		}
+	},
+
+	clearWeeklyGoalUpdateState() {
+		set({
+			weeklyGoalUpdateError: "",
+			weeklyGoalUpdateSuccess: "",
+		});
 	},
 
 	resetStore() {

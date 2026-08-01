@@ -9,6 +9,8 @@ internal sealed class FakeProgressService : IProgressService
 {
     public int LastUserId { get; private set; }
 
+    public int LastWeeklyGoal { get; private set; }
+
     public ProgressResponse ProgressResponse { get; set; } = new();
 
     public ProgressSummaryResponse SummaryResponse { get; set; } = new();
@@ -41,6 +43,15 @@ internal sealed class FakeProgressService : IProgressService
     {
         LastUserId = userId;
         return Task.FromResult(WeeklyGoalProgressResponse);
+    }
+
+    public Task<ProgressResponse> UpdateWeeklyGoalAsync(
+        int userId,
+        int weeklyGoal)
+    {
+        LastUserId = userId;
+        LastWeeklyGoal = weeklyGoal;
+        return Task.FromResult(ProgressResponse);
     }
 
     public Task<IReadOnlyList<AchievementResponse>> GetAchievementsAsync(int userId)

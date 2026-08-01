@@ -1,6 +1,7 @@
 using System.Data.Common;
 using backend.Data;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -8,11 +9,23 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace backend.Tests.Integration;
 
 public class TestWebApplicationFactory : WebApplicationFactory<Program>, IDisposable
 {
+    private const string TestJwtKey =
+        "super-secret-test-key-123456789012345";
+
+    private const string TestJwtIssuer =
+        "jobquest-tests";
+
+    private const string TestJwtAudience =
+        "jobquest-tests";
+
     private readonly DbConnection _connection;
 
     public TestWebApplicationFactory()
@@ -44,15 +57,15 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>, IDispos
                 ),
                 new KeyValuePair<string, string?>(
                     "Jwt:Key",
-                    "super-secret-test-key-123456789012345"
+                    TestJwtKey
                 ),
                 new KeyValuePair<string, string?>(
                     "Jwt:Issuer",
-                    "jobquest-tests"
+                    TestJwtIssuer
                 ),
                 new KeyValuePair<string, string?>(
                     "Jwt:Audience",
-                    "jobquest-tests"
+                    TestJwtAudience
                 ),
                 new KeyValuePair<string, string?>(
                     "Jwt:ExpiryMinutes",
@@ -74,6 +87,27 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>, IDispos
             {
                 options.UseSqlite(serviceProvider.GetRequiredService<DbConnection>());
             });
+
+            services.PostConfigure<JwtBearerOptions>(
+                JwtBearerDefaults.AuthenticationScheme,
+                options =>
+                {
+                    options.RequireHttpsMetadata = false;
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidIssuer = TestJwtIssuer,
+                        ValidateAudience = true,
+                        ValidAudience = TestJwtAudience,
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = new SymmetricSecurityKey(
+                            Encoding.UTF8.GetBytes(TestJwtKey)
+                        ),
+                        ValidateLifetime = true,
+                        ClockSkew = TimeSpan.Zero
+                    };
+                }
+            );
 
             var serviceProvider = services.BuildServiceProvider();
 

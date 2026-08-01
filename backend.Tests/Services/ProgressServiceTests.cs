@@ -261,6 +261,69 @@ public class ProgressServiceTests
     }
 
     [Fact]
+    public async Task UpdateWeeklyGoalAsync_UpdatesStoredProgressForCurrentUserOnly()
+    {
+        using var context = TestDbContextFactory.CreateContext();
+        context.UserProgress.AddRange(
+            new UserProgress
+            {
+                UserId = 1,
+                WeeklyGoal = 5,
+                TotalPoints = 100,
+                CurrentLevel = 2,
+                CurrentStreak = 3
+            },
+            new UserProgress
+            {
+                UserId = 2,
+                WeeklyGoal = 9,
+                TotalPoints = 20,
+                CurrentLevel = 1,
+                CurrentStreak = 1
+            }
+        );
+        await context.SaveChangesAsync();
+
+        var service = new ProgressService(context);
+
+        var response = await service.UpdateWeeklyGoalAsync(1, 7);
+
+        Assert.Equal(7, response.WeeklyGoal);
+        Assert.Equal(7, context.UserProgress.Single(progress => progress.UserId == 1).WeeklyGoal);
+        Assert.Equal(9, context.UserProgress.Single(progress => progress.UserId == 2).WeeklyGoal);
+    }
+
+    [Fact]
+    public async Task UpdateWeeklyGoalAsync_CreatesProgressRecordWhenMissing()
+    {
+        using var context = TestDbContextFactory.CreateContext();
+        var service = new ProgressService(context);
+
+        var response = await service.UpdateWeeklyGoalAsync(42, 10);
+
+        Assert.Equal(10, response.WeeklyGoal);
+        var storedProgress = Assert.Single(context.UserProgress);
+        Assert.Equal(42, storedProgress.UserId);
+        Assert.Equal(10, storedProgress.WeeklyGoal);
+        Assert.Equal(1, storedProgress.CurrentLevel);
+    }
+
+    [Fact]
+    public async Task UpdateWeeklyGoalAsync_RejectsValuesOutsideAllowedRange()
+    {
+        using var context = TestDbContextFactory.CreateContext();
+        var service = new ProgressService(context);
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
+            service.UpdateWeeklyGoalAsync(1, 0)
+        );
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
+            service.UpdateWeeklyGoalAsync(1, 21)
+        );
+    }
+
+    [Fact]
     public async Task GetAchievementsAsync_ReturnsTemplatesWithUnlockedState()
     {
         using var context = TestDbContextFactory.CreateContext();

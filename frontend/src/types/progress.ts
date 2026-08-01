@@ -34,3 +34,7 @@ export interface WeeklyGoalProgressResponse {
 	weekStartDate: string;
 	weekEndDate: string;
 }
+
+export interface UpdateWeeklyGoalRequest {
+	weeklyGoal: number;
+}

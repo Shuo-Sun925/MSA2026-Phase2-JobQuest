@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useDashboardTheme } from "../hooks/useDashboardTheme";
 import registerHero from "../assets/register-hero.png";
 import logo from "../assets/logo.png";
 import { useAuthStore } from "../store/useAuthStore";
@@ -64,7 +65,12 @@ export default function RegisterPage() {
 	const [confirmPassword, setConfirmPassword] = useState("");
 	const [formError, setFormError] = useState("");
 	const navigate = useNavigate();
+	const { theme, toggleTheme } = useDashboardTheme();
 	const { session, register, isSubmitting, requestError, resetError } = useAuthStore();
+	const authShellClassName =
+		theme === "dark" ? "app-shell app-shell--auth app-shell--auth-dark" : "app-shell app-shell--auth";
+	const authLayoutClassName =
+		theme === "dark" ? "auth-layout auth-layout--register auth-layout--dark" : "auth-layout auth-layout--register";
 
 	useEffect(() => {
 		if (session) {
@@ -93,8 +99,17 @@ export default function RegisterPage() {
 	}
 
 	return (
-		<main className="app-shell app-shell--auth">
-			<section className="auth-layout auth-layout--register">
+		<main className={authShellClassName}>
+			<section className={authLayoutClassName}>
+				<button
+					className="auth-theme-toggle"
+					type="button"
+					onClick={toggleTheme}
+					aria-pressed={theme === "dark"}
+				>
+					{theme === "dark" ? "Light mode" : "Dark mode"}
+				</button>
+
 				<div className="auth-layout__visual auth-layout__visual--register">
 					<div className="auth-register-brand" aria-label="JobQuest">
 						<img className="auth-logo-image auth-logo-image--light" src={logo} alt="JobQuest" />

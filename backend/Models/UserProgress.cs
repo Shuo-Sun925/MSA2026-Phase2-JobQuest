@@ -18,7 +18,7 @@ public class UserProgress
 
     public DateOnly? LastActivityDate { get; set; }
 
-    [Range(1, 100)]
+    [Range(1, 20)]
     public int WeeklyGoal { get; set; } = 5;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

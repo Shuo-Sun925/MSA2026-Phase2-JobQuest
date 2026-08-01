@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { NavLink, useNavigate, useParams } from "react-router-dom";
 import logo from "../assets/logo.png";
+import { useDashboardTheme } from "../hooks/useDashboardTheme";
 import { useAuthStore } from "../store/useAuthStore";
 import { useJobApplicationsStore } from "../store/useJobApplicationsStore";
 import {
@@ -337,6 +338,7 @@ export default function ApplicationsPage() {
 	const navigate = useNavigate();
 	const { applicationId } = useParams<{ applicationId?: string }>();
 	const { currentUser, logout } = useAuthStore();
+	const { theme, toggleTheme } = useDashboardTheme();
 	const applications = useJobApplicationsStore((state) => state.applications);
 	const selectedApplication = useJobApplicationsStore((state) => state.selectedApplication);
 	const activeApplicationId = useJobApplicationsStore((state) => state.activeApplicationId);
@@ -725,7 +727,6 @@ export default function ApplicationsPage() {
 		if (event.key !== "Enter") {
 			return;
 		}
-
 		if (event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLButtonElement) {
 			return;
 		}
@@ -733,8 +734,11 @@ export default function ApplicationsPage() {
 		event.preventDefault();
 	}
 
+	const dashboardShellClassName =
+		theme === "dark" ? "dashboard-shell dashboard-shell--dark" : "dashboard-shell";
+
 	return (
-		<main className="dashboard-shell">
+		<main className={dashboardShellClassName}>
 			<aside className="dashboard-sidebar">
 				<div className="dashboard-brand" aria-label="JobQuest">
 					<img className="dashboard-brand__image" src={logo} alt="JobQuest" />
@@ -761,10 +765,21 @@ export default function ApplicationsPage() {
 
 				<div className="dashboard-sidebar__spacer" />
 
-				<button className="dashboard-logout" type="button" onClick={() => logout()}>
-					<LogoutIcon />
-					<span>Logout</span>
-				</button>
+				<div className="dashboard-sidebar__actions">
+					<button
+						className="dashboard-theme-toggle"
+						type="button"
+						onClick={toggleTheme}
+						aria-pressed={theme === "dark"}
+					>
+						<span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
+					</button>
+
+					<button className="dashboard-logout" type="button" onClick={() => logout()}>
+						<LogoutIcon />
+						<span>Logout</span>
+					</button>
+				</div>
 			</aside>
 
 			<section className="workspace-main">

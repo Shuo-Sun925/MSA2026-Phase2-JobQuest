@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import logo from "../assets/logo.png";
+import { useDashboardTheme } from "../hooks/useDashboardTheme";
 import { useAuthStore } from "../store/useAuthStore";
 import { useJobApplicationsStore } from "../store/useJobApplicationsStore";
 import type { JobApplicationResponse, JobApplicationStatus } from "../types/jobApplication";
@@ -272,6 +273,7 @@ function getApplicationLogoMark(application: JobApplicationResponse) {
 
 export default function ApplicationsOverviewPage() {
 	const { currentUser, logout } = useAuthStore();
+	const { theme, toggleTheme } = useDashboardTheme();
 	const applications = useJobApplicationsStore((state) => state.applications);
 	const hasLoadedList = useJobApplicationsStore((state) => state.hasLoadedList);
 	const isLoadingList = useJobApplicationsStore((state) => state.isLoadingList);
@@ -304,9 +306,11 @@ export default function ApplicationsOverviewPage() {
 			return matchesFilter && matchesQuery;
 		});
 	}, [activeFilter, applications, searchQuery]);
+	const dashboardShellClassName =
+		theme === "dark" ? "dashboard-shell dashboard-shell--dark" : "dashboard-shell";
 
 	return (
-		<main className="dashboard-shell">
+		<main className={dashboardShellClassName}>
 			<aside className="dashboard-sidebar">
 				<div className="dashboard-brand" aria-label="JobQuest">
 					<img className="dashboard-brand__image" src={logo} alt="JobQuest" />
@@ -333,10 +337,21 @@ export default function ApplicationsOverviewPage() {
 
 				<div className="dashboard-sidebar__spacer" />
 
-				<button className="dashboard-logout" type="button" onClick={() => logout()}>
-					<LogoutIcon />
-					<span>Logout</span>
-				</button>
+				<div className="dashboard-sidebar__actions">
+					<button
+						className="dashboard-theme-toggle"
+						type="button"
+						onClick={toggleTheme}
+						aria-pressed={theme === "dark"}
+					>
+						<span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
+					</button>
+
+					<button className="dashboard-logout" type="button" onClick={() => logout()}>
+						<LogoutIcon />
+						<span>Logout</span>
+					</button>
+				</div>
 			</aside>
 
 			<section className="workspace-main">

@@ -6,6 +6,7 @@ import interviewUnlockedIcon from "../assets/interview-unlocked.png";
 import jobHunterIcon from "../assets/job-hunter.png";
 import logo from "../assets/logo.png";
 import offerHunterIcon from "../assets/offer-hunter.png";
+import { useDashboardTheme } from "../hooks/useDashboardTheme";
 import { useAuthStore } from "../store/useAuthStore";
 import { useAchievementsStore } from "../store/useAchievementsStore";
 import { useJobApplicationsStore } from "../store/useJobApplicationsStore";
@@ -150,6 +151,7 @@ function getAchievementAsset(name: string) {
 
 export default function DashboardPage() {
 	const { currentUser, logout } = useAuthStore();
+	const { theme, toggleTheme } = useDashboardTheme();
 	const progress = useProgressStore((state) => state.progress);
 	const summary = useProgressStore((state) => state.summary);
 	const weeklyGoalProgress = useProgressStore((state) => state.weeklyGoalProgress);
@@ -220,9 +222,11 @@ export default function DashboardPage() {
 	const totalApplications = summary?.totalApplications ?? applications.length;
 	const isNewUserEmptyState = totalApplications === 0;
 	const displayName = currentUser?.username ? `${currentUser.username}!` : "there!";
+	const dashboardShellClassName =
+		theme === "dark" ? "dashboard-shell dashboard-shell--dark" : "dashboard-shell";
 
 	return (
-		<main className="dashboard-shell">
+		<main className={dashboardShellClassName}>
 			<aside className="dashboard-sidebar">
 				<div className="dashboard-brand" aria-label="JobQuest">
 					<img className="dashboard-brand__image" src={logo} alt="JobQuest" />
@@ -249,10 +253,21 @@ export default function DashboardPage() {
 
 				<div className="dashboard-sidebar__spacer" />
 
-				<button className="dashboard-logout" type="button" onClick={() => logout()}>
-					<LogoutIcon />
-					<span>Logout</span>
-				</button>
+				<div className="dashboard-sidebar__actions">
+					<button
+						className="dashboard-theme-toggle"
+						type="button"
+						onClick={toggleTheme}
+						aria-pressed={theme === "dark"}
+					>
+						<span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
+					</button>
+
+					<button className="dashboard-logout" type="button" onClick={() => logout()}>
+						<LogoutIcon />
+						<span>Logout</span>
+					</button>
+				</div>
 			</aside>
 
 			<section className="dashboard-main">
