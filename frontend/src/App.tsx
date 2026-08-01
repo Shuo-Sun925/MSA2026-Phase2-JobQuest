@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AchievementsPage from "./pages/AchievementsPage";
 import ApplicationsPage from "./pages/ApplicationsPage";
+import ApplicationsOverviewPage from "./pages/ApplicationsOverviewPage";
 import DashboardPage from "./pages/DashboardPage";
 import LoginPage from "./pages/LoginPage";
 import ProgressPage from "./pages/ProgressPage";
@@ -30,6 +31,22 @@ function App() {
       />
       <Route
         path="/applications"
+        element={(
+          <ProtectedRoute>
+            <ApplicationsOverviewPage />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path="/applications/new"
+        element={(
+          <ProtectedRoute>
+            <ApplicationsPage />
+          </ProtectedRoute>
+        )}
+      />
+      <Route
+        path="/applications/:applicationId"
         element={(
           <ProtectedRoute>
             <ApplicationsPage />

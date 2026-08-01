@@ -46,6 +46,9 @@ export interface JobApplicationDraft {
 	notes: string;
 }
 
+export type JobApplicationFieldName = keyof JobApplicationDraft;
+export type JobApplicationFieldErrors = Partial<Record<JobApplicationFieldName, string>>;
+
 export const EMPTY_JOB_APPLICATION_DRAFT: JobApplicationDraft = {
 	companyName: "",
 	jobTitle: "",

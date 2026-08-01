@@ -8,6 +8,7 @@ import {
 	updateJobApplication,
 } from "../services/jobApplicationsService";
 import type {
+	JobApplicationFieldErrors,
 	JobApplicationResponse,
 	JobApplicationUpsertRequest,
 } from "../types/jobApplication";
@@ -22,6 +23,7 @@ interface JobApplicationsStoreState {
 	isSubmitting: boolean;
 	isDeleting: boolean;
 	requestError: string;
+	validationErrors: JobApplicationFieldErrors;
 	statusMessage: string;
 	listApplications: () => Promise<JobApplicationResponse[]>;
 	loadApplicationById: (id: number) => Promise<JobApplicationResponse>;
@@ -35,6 +37,7 @@ interface JobApplicationsStoreState {
 	deleteApplication: (id: number) => Promise<void>;
 	resetStore: () => void;
 	clearSelection: () => void;
+	clearValidationErrors: (fields?: (keyof JobApplicationFieldErrors)[]) => void;
 	resetStatus: (message?: string) => void;
 }
 
@@ -51,9 +54,29 @@ function createInitialApplicationsState() {
 		isSubmitting: false,
 		isDeleting: false,
 		requestError: "",
+		validationErrors: {},
 		statusMessage: INITIAL_STATUS_MESSAGE,
 	};
 }
+
+const JOB_APPLICATION_VALIDATION_FIELD_MAP: Record<string, keyof JobApplicationFieldErrors> = {
+	AppliedDate: "appliedDate",
+	CompanyName: "companyName",
+	JobLink: "jobLink",
+	JobTitle: "jobTitle",
+	Location: "location",
+	NextFollowUpDate: "nextFollowUpDate",
+	Notes: "notes",
+	Status: "status",
+	appliedDate: "appliedDate",
+	companyName: "companyName",
+	jobLink: "jobLink",
+	jobTitle: "jobTitle",
+	location: "location",
+	nextFollowUpDate: "nextFollowUpDate",
+	notes: "notes",
+	status: "status",
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null;
@@ -90,6 +113,45 @@ function getValidationErrorsMessage(data: unknown): string | null {
 	});
 
 	return messages.length > 0 ? messages.join(" ") : null;
+}
+
+function getValidationErrorFieldName(propertyName: string): keyof JobApplicationFieldErrors | null {
+	const normalizedPropertyName = propertyName.replace(/^\$\.?/, "");
+	const simplePropertyName = normalizedPropertyName.split(".").at(-1) ?? normalizedPropertyName;
+
+	return JOB_APPLICATION_VALIDATION_FIELD_MAP[simplePropertyName] ?? null;
+}
+
+function getValidationErrors(data: unknown): JobApplicationFieldErrors {
+	if (!isRecord(data)) {
+		return {};
+	}
+
+	const errors = data.errors;
+
+	if (!isRecord(errors)) {
+		return {};
+	}
+
+	const validationErrors: JobApplicationFieldErrors = {};
+
+	for (const [propertyName, entry] of Object.entries(errors)) {
+		const fieldName = getValidationErrorFieldName(propertyName);
+
+		if (!fieldName || !Array.isArray(entry)) {
+			continue;
+		}
+
+		const firstMessage = entry.find(
+			(message): message is string => typeof message === "string" && message.length > 0,
+		);
+
+		if (firstMessage) {
+			validationErrors[fieldName] = firstMessage;
+		}
+	}
+
+	return validationErrors;
 }
 
 function getUpdatedAtTimestamp(application: JobApplicationResponse): number {
@@ -186,6 +248,14 @@ function getApplicationsErrorMessage(
 	return fallbackMessage;
 }
 
+function getApplicationsValidationErrors(error: unknown): JobApplicationFieldErrors {
+	if (!axios.isAxiosError(error)) {
+		return {};
+	}
+
+	return getValidationErrors(error.response?.data);
+}
+
 function upsertApplication(
 	applications: JobApplicationResponse[],
 	application: JobApplicationResponse,
@@ -211,6 +281,7 @@ export const useJobApplicationsStore = create<JobApplicationsStoreState>((set, g
 		set({
 			isLoadingList: true,
 			requestError: "",
+			validationErrors: {},
 			statusMessage: "Loading applications...",
 		});
 
@@ -246,6 +317,7 @@ export const useJobApplicationsStore = create<JobApplicationsStoreState>((set, g
 
 			set({
 				requestError: message,
+				validationErrors: {},
 				statusMessage: "Application list request failed.",
 			});
 
@@ -261,6 +333,7 @@ export const useJobApplicationsStore = create<JobApplicationsStoreState>((set, g
 		set({
 			isLoadingDetails: true,
 			requestError: "",
+			validationErrors: {},
 			statusMessage: `Loading application ${id}...`,
 		});
 
@@ -289,6 +362,7 @@ export const useJobApplicationsStore = create<JobApplicationsStoreState>((set, g
 				selectedApplication: shouldClearSelection ? null : get().selectedApplication,
 				activeApplicationId: shouldClearSelection ? null : get().activeApplicationId,
 				requestError: message,
+				validationErrors: {},
 				statusMessage: "Application details request failed.",
 			});
 
@@ -304,6 +378,7 @@ export const useJobApplicationsStore = create<JobApplicationsStoreState>((set, g
 		set({
 			isSubmitting: true,
 			requestError: "",
+			validationErrors: {},
 			statusMessage: "Creating application...",
 		});
 
@@ -315,6 +390,7 @@ export const useJobApplicationsStore = create<JobApplicationsStoreState>((set, g
 				selectedApplication: application,
 				activeApplicationId: application.id,
 				hasLoadedList: true,
+				validationErrors: {},
 				statusMessage: `Created application ${application.id} successfully.`,
 			}));
 
@@ -327,6 +403,7 @@ export const useJobApplicationsStore = create<JobApplicationsStoreState>((set, g
 
 			set({
 				requestError: message,
+				validationErrors: getApplicationsValidationErrors(error),
 				statusMessage: "Application create request failed.",
 			});
 
@@ -342,6 +419,7 @@ export const useJobApplicationsStore = create<JobApplicationsStoreState>((set, g
 		set({
 			isSubmitting: true,
 			requestError: "",
+			validationErrors: {},
 			statusMessage: `Updating application ${id}...`,
 		});
 
@@ -352,6 +430,7 @@ export const useJobApplicationsStore = create<JobApplicationsStoreState>((set, g
 				applications: upsertApplication(state.applications, application),
 				selectedApplication: application,
 				activeApplicationId: application.id,
+				validationErrors: {},
 				statusMessage: `Updated application ${application.id} successfully.`,
 			}));
 
@@ -364,6 +443,7 @@ export const useJobApplicationsStore = create<JobApplicationsStoreState>((set, g
 
 			set({
 				requestError: message,
+				validationErrors: getApplicationsValidationErrors(error),
 				statusMessage: "Application update request failed.",
 			});
 
@@ -379,6 +459,7 @@ export const useJobApplicationsStore = create<JobApplicationsStoreState>((set, g
 		set({
 			isDeleting: true,
 			requestError: "",
+			validationErrors: {},
 			statusMessage: `Deleting application ${id}...`,
 		});
 
@@ -405,6 +486,7 @@ export const useJobApplicationsStore = create<JobApplicationsStoreState>((set, g
 
 			set({
 				requestError: message,
+				validationErrors: {},
 				statusMessage: "Application delete request failed.",
 			});
 
@@ -425,13 +507,36 @@ export const useJobApplicationsStore = create<JobApplicationsStoreState>((set, g
 			selectedApplication: null,
 			activeApplicationId: null,
 			requestError: "",
+			validationErrors: {},
 			statusMessage: "Selection cleared.",
+		});
+	},
+
+	clearValidationErrors(fields) {
+		if (!fields || fields.length === 0) {
+			set({
+				validationErrors: {},
+			});
+			return;
+		}
+
+		set((state) => {
+			const nextValidationErrors = { ...state.validationErrors };
+
+			for (const field of fields) {
+				delete nextValidationErrors[field];
+			}
+
+			return {
+				validationErrors: nextValidationErrors,
+			};
 		});
 	},
 
 	resetStatus(message = "Applications sandbox is ready for the next request.") {
 		set({
 			requestError: "",
+			validationErrors: {},
 			statusMessage: message,
 		});
 	},

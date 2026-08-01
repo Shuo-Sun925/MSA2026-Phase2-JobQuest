@@ -1,7 +1,145 @@
-import { Link } from "react-router-dom";
+import { useEffect } from "react";
+import { Link, NavLink } from "react-router-dom";
+import logo from "../assets/logo.png";
+import { useAuthStore } from "../store/useAuthStore";
 import { useProgressStore } from "../store/useProgressStore";
 
+function DashboardIcon() {
+	return (
+		<svg viewBox="0 0 24 24" aria-hidden="true">
+			<path d="M4 4h7v7H4Zm9 0h7v5h-7ZM4 13h5v7H4Zm7 3h9v4h-9Z" fill="currentColor" />
+		</svg>
+	);
+}
+
+function ApplicationsIcon() {
+	return (
+		<svg viewBox="0 0 24 24" aria-hidden="true">
+			<path
+				d="M7 4h8l4 4v12H7zM15 4v4h4M9 12h8M9 16h8"
+				fill="none"
+				stroke="currentColor"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+				strokeWidth="1.8"
+			/>
+		</svg>
+	);
+}
+
+function AchievementIcon() {
+	return (
+		<svg viewBox="0 0 24 24" aria-hidden="true">
+			<path
+				d="m12 3 2.5 5 5.5.8-4 3.9 1 5.5L12 16l-5 2.2 1-5.5-4-3.9 5.5-.8Z"
+				fill="none"
+				stroke="currentColor"
+				strokeLinejoin="round"
+				strokeWidth="1.8"
+			/>
+		</svg>
+	);
+}
+
+function ProgressIcon() {
+	return (
+		<svg viewBox="0 0 24 24" aria-hidden="true">
+			<path
+				d="M5 17 10 12l3 3 6-7M5 7v10h14"
+				fill="none"
+				stroke="currentColor"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+				strokeWidth="1.8"
+			/>
+		</svg>
+	);
+}
+
+function LogoutIcon() {
+	return (
+		<svg viewBox="0 0 24 24" aria-hidden="true">
+			<path
+				d="M10 7V5h8v14h-8v-2M14 12H4m0 0 3-3m-3 3 3 3"
+				fill="none"
+				stroke="currentColor"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+				strokeWidth="1.8"
+			/>
+		</svg>
+	);
+}
+
+function FlameIcon() {
+	return (
+		<svg viewBox="0 0 24 24" aria-hidden="true">
+			<path
+				d="M13 3s1 2.5-1 5.5c-1.3 1.9 1 2.9 1 2.9s.4-1.6 2.2-2.7C17.8 7 18 4 18 4s3 3 3 8a9 9 0 1 1-18 0c0-3.8 2.2-6.5 4.1-8.3.4 2.4 2.2 3.7 2.2 3.7s-.2-2.4 1.6-4.4Z"
+				fill="none"
+				stroke="currentColor"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+				strokeWidth="1.8"
+			/>
+		</svg>
+	);
+}
+
+function TargetIcon() {
+	return (
+		<svg viewBox="0 0 24 24" aria-hidden="true">
+			<path
+				d="M12 3v4m0 10v4m9-9h-4M7 12H3m15.36-6.36-2.83 2.83M8.47 15.53l-2.83 2.83m0-12.72 2.83 2.83m9.89 9.89-2.83-2.83M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+				fill="none"
+				stroke="currentColor"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+				strokeWidth="1.8"
+			/>
+		</svg>
+	);
+}
+
+function CalendarIcon() {
+	return (
+		<svg viewBox="0 0 24 24" aria-hidden="true">
+			<path
+				d="M7 3v3m10-3v3M5 8h14M6 5h12a1 1 0 0 1 1 1v13H5V6a1 1 0 0 1 1-1Z"
+				fill="none"
+				stroke="currentColor"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+				strokeWidth="1.8"
+			/>
+		</svg>
+	);
+}
+
+function getDashboardNavClassName(isActive: boolean) {
+	return isActive ? "dashboard-nav__item dashboard-nav__item--active" : "dashboard-nav__item";
+}
+
+function formatDateLabel(value: string | null) {
+	if (!value) {
+		return "No activity yet";
+	}
+
+	const parsedDate = Date.parse(value);
+
+	if (Number.isNaN(parsedDate)) {
+		return value;
+	}
+
+	return new Intl.DateTimeFormat("en", {
+		month: "short",
+		day: "numeric",
+		year: "numeric",
+	}).format(parsedDate);
+}
+
 export default function ProgressPage() {
+	const { logout } = useAuthStore();
 	const progress = useProgressStore((state) => state.progress);
 	const summary = useProgressStore((state) => state.summary);
 	const weeklyGoalProgress = useProgressStore((state) => state.weeklyGoalProgress);
@@ -16,184 +154,236 @@ export default function ProgressPage() {
 		(state) => state.isLoadingWeeklyGoalProgress,
 	);
 	const requestError = useProgressStore((state) => state.requestError);
-	const statusMessage = useProgressStore((state) => state.statusMessage);
 	const loadProgress = useProgressStore((state) => state.loadProgress);
 	const loadSummary = useProgressStore((state) => state.loadSummary);
 	const loadWeeklyGoalProgress = useProgressStore((state) => state.loadWeeklyGoalProgress);
-	const resetStatus = useProgressStore((state) => state.resetStatus);
 	const isAnyLoading =
 		isLoadingProgress || isLoadingSummary || isLoadingWeeklyGoalProgress;
+	const totalPoints = progress?.totalPoints ?? summary?.totalPoints ?? 0;
+	const currentLevel = progress?.currentLevel ?? summary?.currentLevel ?? 1;
+	const currentStreak = progress?.currentStreak ?? summary?.currentStreak ?? 0;
+	const weeklyGoal = weeklyGoalProgress?.weeklyGoal ?? summary?.weeklyGoal ?? progress?.weeklyGoal ?? 5;
+	const appliedThisWeek = weeklyGoalProgress?.appliedThisWeek ?? summary?.weeklyGoalProgress ?? 0;
+	const remainingApplications = weeklyGoalProgress?.remainingApplications ?? summary?.remainingApplications ?? Math.max(weeklyGoal - appliedThisWeek, 0);
+	const isGoalMet = weeklyGoalProgress?.isGoalMet ?? summary?.isGoalMet ?? false;
+	const totalApplications = summary?.totalApplications ?? 0;
+	const appliedCount = summary?.appliedCount ?? 0;
+	const interviewCount = summary?.interviewCount ?? 0;
+	const offerCount = summary?.offerCount ?? 0;
+	const rejectedCount = summary?.rejectedCount ?? 0;
+	const savedCount = summary?.savedCount ?? 0;
+	const lastActivityDate = progress?.lastActivityDate ?? summary?.lastActivityDate ?? null;
+	const nextLevelTarget = Math.max((currentLevel + 1) * 250, 250);
+	const levelProgressPercent = Math.min(100, Math.round((totalPoints / nextLevelTarget) * 100));
+	const weeklyProgressPercent = Math.min(100, Math.round((appliedThisWeek / Math.max(weeklyGoal, 1)) * 100));
+	const isReady = hasLoadedProgress || hasLoadedSummary || hasLoadedWeeklyGoalProgress;
+
+	useEffect(() => {
+		if (!hasLoadedProgress) {
+			void loadProgress().catch(() => undefined);
+		}
+
+		if (!hasLoadedSummary) {
+			void loadSummary().catch(() => undefined);
+		}
+
+		if (!hasLoadedWeeklyGoalProgress) {
+			void loadWeeklyGoalProgress().catch(() => undefined);
+		}
+	}, [
+		hasLoadedProgress,
+		hasLoadedSummary,
+		hasLoadedWeeklyGoalProgress,
+		loadProgress,
+		loadSummary,
+		loadWeeklyGoalProgress,
+	]);
 
 	return (
-		<main className="app-shell">
-			<section className="app-hero">
-				<p className="app-hero__eyebrow">Progress</p>
-				<h1>Temporary Progress API sandbox</h1>
-				<p className="app-hero__body">
-					This page calls the three real read-only progress endpoints before any final dashboard UI is designed.
-				</p>
-			</section>
-
-			<section className="session-card">
-				<div className="session-card__header">
-					<div>
-						<p className="auth-card__eyebrow">Module checklist</p>
-						<h2>Request controls and runtime state</h2>
-					</div>
-
-					<span
-						className={requestError ? "status-pill" : "status-pill status-pill--success"}
-					>
-						{requestError ? "Error present" : "Ready"}
-					</span>
+		<main className="dashboard-shell">
+			<aside className="dashboard-sidebar">
+				<div className="dashboard-brand" aria-label="JobQuest">
+					<img className="dashboard-brand__image" src={logo} alt="JobQuest" />
 				</div>
 
-				<div className="session-card__content">
-					<div className="session-panel">
-						<h3>Current request status</h3>
-						<dl>
-							<div>
-								<dt>Message</dt>
-								<dd>{statusMessage}</dd>
+				<nav className="dashboard-nav" aria-label="Dashboard navigation">
+					<NavLink className={({ isActive }) => getDashboardNavClassName(isActive)} to="/dashboard">
+						<DashboardIcon />
+						<span>Dashboard</span>
+					</NavLink>
+					<NavLink className={({ isActive }) => getDashboardNavClassName(isActive)} to="/applications">
+						<ApplicationsIcon />
+						<span>Applications</span>
+					</NavLink>
+					<NavLink className={({ isActive }) => getDashboardNavClassName(isActive)} to="/achievements">
+						<AchievementIcon />
+						<span>Achievements</span>
+					</NavLink>
+					<NavLink className={({ isActive }) => getDashboardNavClassName(isActive)} to="/progress">
+						<ProgressIcon />
+						<span>Progress</span>
+					</NavLink>
+				</nav>
+
+				<div className="dashboard-sidebar__spacer" />
+
+				<button className="dashboard-logout" type="button" onClick={() => logout()}>
+					<LogoutIcon />
+					<span>Logout</span>
+				</button>
+			</aside>
+
+			<section className="dashboard-main progress-main">
+				<section className="progress-hero">
+					<div className="progress-hero__copy">
+						<p className="progress-hero__eyebrow">Performance overview</p>
+						<h1>Progress Centre</h1>
+						<p>
+							This is where your streak, level growth, weekly cadence, and pipeline
+							movement live together.
+						</p>
+					</div>
+
+					<div className="progress-hero__summary">
+						<strong>{weeklyProgressPercent}%</strong>
+						<span>This week</span>
+					</div>
+				</section>
+
+				{requestError ? <p className="dashboard-inline-error">{requestError}</p> : null}
+
+				{!isReady && isAnyLoading ? (
+					<p className="dashboard-empty-state">Loading progress...</p>
+				) : (
+					<>
+						<section className="dashboard-kpi-grid progress-kpi-grid">
+							<article className="dashboard-kpi dashboard-kpi--cyan">
+								<span>Total XP</span>
+								<strong>{totalPoints}</strong>
+							</article>
+							<article className="dashboard-kpi dashboard-kpi--violet">
+								<span>Current Level</span>
+								<strong>Level {currentLevel}</strong>
+							</article>
+							<article className="dashboard-kpi dashboard-kpi--purple">
+								<span>Weekly Goal</span>
+								<strong>{appliedThisWeek} / {weeklyGoal}</strong>
+							</article>
+							<article className="dashboard-kpi">
+								<span>Applications Tracked</span>
+								<strong>{totalApplications}</strong>
+							</article>
+						</section>
+
+						<section className="progress-layout">
+							<div className="progress-layout__main">
+								<article className="dashboard-level-card">
+									<div className="dashboard-level-card__header">
+										<div>
+											<p>Level trajectory</p>
+											<h2>{currentLevel}</h2>
+										</div>
+										<div className="dashboard-level-card__meta">
+											<span>Next level</span>
+											<strong>{Math.max(nextLevelTarget - totalPoints, 0)} XP to go</strong>
+										</div>
+									</div>
+
+									<div className="dashboard-level-card__progress">
+										<span style={{ width: `${levelProgressPercent}%` }} />
+									</div>
+								</article>
+
+								<article className="progress-panel">
+									<div className="progress-panel__header">
+										<div>
+											<p>Weekly target</p>
+											<h2>{isGoalMet ? "Goal reached" : `${remainingApplications} to go`}</h2>
+										</div>
+										<TargetIcon />
+									</div>
+
+									<div className="progress-panel__bar">
+										<span style={{ width: `${weeklyProgressPercent}%` }} />
+									</div>
+
+									<div className="progress-panel__summary-row">
+										<strong>{appliedThisWeek} applications this week</strong>
+										<span>{weeklyGoal} target</span>
+									</div>
+									{weeklyGoalProgress ? (
+										<p className="progress-panel__caption">
+											Window: {formatDateLabel(weeklyGoalProgress.weekStartDate)} to {formatDateLabel(weeklyGoalProgress.weekEndDate)}
+										</p>
+									) : null}
+								</article>
+
+								<article className="progress-panel">
+									<div className="progress-panel__header">
+										<div>
+											<p>Pipeline breakdown</p>
+											<h2>Where your applications stand</h2>
+										</div>
+										<CalendarIcon />
+									</div>
+
+									<div className="progress-stage-grid">
+										<div className="progress-stage-card">
+											<span>Saved</span>
+											<strong>{savedCount}</strong>
+										</div>
+										<div className="progress-stage-card">
+											<span>Applied</span>
+											<strong>{appliedCount}</strong>
+										</div>
+										<div className="progress-stage-card">
+											<span>Interviews</span>
+											<strong>{interviewCount}</strong>
+										</div>
+										<div className="progress-stage-card">
+											<span>Offers</span>
+											<strong>{offerCount}</strong>
+										</div>
+										<div className="progress-stage-card">
+											<span>Rejected</span>
+											<strong>{rejectedCount}</strong>
+										</div>
+									</div>
+								</article>
 							</div>
-							<div>
-								<dt>Progress endpoint</dt>
-								<dd>{isLoadingProgress ? "Loading" : hasLoadedProgress ? "Loaded" : "Not requested yet"}</dd>
-							</div>
-							<div>
-								<dt>Summary endpoint</dt>
-								<dd>{isLoadingSummary ? "Loading" : hasLoadedSummary ? "Loaded" : "Not requested yet"}</dd>
-							</div>
-							<div>
-								<dt>Weekly goal endpoint</dt>
-								<dd>
-									{isLoadingWeeklyGoalProgress
-										? "Loading"
-										: hasLoadedWeeklyGoalProgress
-											? "Loaded"
-											: "Not requested yet"}
-								</dd>
-							</div>
-						</dl>
 
-						{requestError ? <p className="auth-form__error">{requestError}</p> : null}
-					</div>
+							<aside className="progress-layout__side">
+								<article className="progress-streak-card">
+									<div className="progress-streak-card__header">
+										<div>
+											<p>Consistency</p>
+											<h2>{String(currentStreak).padStart(2, "0")}</h2>
+										</div>
+										<FlameIcon />
+									</div>
+									<strong>{currentStreak} day streak</strong>
+									<span>
+										Consistency compounds. Keep applying to protect your streak and keep
+										your momentum alive.
+									</span>
+								</article>
 
-					<div className="session-panel">
-						<h3>API operations</h3>
-						<div className="stack-actions">
-							<button
-								className="secondary-button"
-								type="button"
-								onClick={() => void loadProgress().catch(() => undefined)}
-								disabled={isAnyLoading}
-							>
-								{isLoadingProgress ? "Loading..." : "Load /progress"}
-							</button>
-
-							<button
-								className="secondary-button"
-								type="button"
-								onClick={() => void loadSummary().catch(() => undefined)}
-								disabled={isAnyLoading}
-							>
-								{isLoadingSummary ? "Loading..." : "Load /progress/summary"}
-							</button>
-
-							<button
-								className="secondary-button"
-								type="button"
-								onClick={() => void loadWeeklyGoalProgress().catch(() => undefined)}
-								disabled={isAnyLoading}
-							>
-								{isLoadingWeeklyGoalProgress
-									? "Loading..."
-									: "Load /progress/weekly-goal-progress"}
-							</button>
-
-							<button
-								className="secondary-button"
-								type="button"
-								onClick={() => resetStatus()}
-								disabled={isAnyLoading}
-							>
-								Reset Status Message
-							</button>
-						</div>
-					</div>
-				</div>
-			</section>
-
-			<section className="session-card">
-				<div className="session-card__header">
-					<div>
-						<p className="auth-card__eyebrow">Response inspection</p>
-						<h2>Returned progress payloads</h2>
-					</div>
-				</div>
-
-				<div className="metric-grid">
-					<div className="metric-panel">
-						<h3>/progress</h3>
-						{progress ? (
-							<dl className="compact-definition-list">
-								<div><dt>TotalPoints</dt><dd>{progress.totalPoints}</dd></div>
-								<div><dt>CurrentLevel</dt><dd>{progress.currentLevel}</dd></div>
-								<div><dt>CurrentStreak</dt><dd>{progress.currentStreak}</dd></div>
-								<div><dt>LastActivityDate</dt><dd>{progress.lastActivityDate ?? "None"}</dd></div>
-								<div><dt>WeeklyGoal</dt><dd>{progress.weeklyGoal}</dd></div>
-							</dl>
-						) : (
-							<p className="status-text">No progress payload loaded yet.</p>
-						)}
-					</div>
-
-					<div className="metric-panel">
-						<h3>/progress/summary</h3>
-						{summary ? (
-							<dl className="compact-definition-list">
-								<div><dt>TotalApplications</dt><dd>{summary.totalApplications}</dd></div>
-								<div><dt>ApplicationsThisWeek</dt><dd>{summary.applicationsThisWeek}</dd></div>
-								<div><dt>AppliedCount</dt><dd>{summary.appliedCount}</dd></div>
-								<div><dt>InterviewCount</dt><dd>{summary.interviewCount}</dd></div>
-								<div><dt>OfferCount</dt><dd>{summary.offerCount}</dd></div>
-								<div><dt>WeeklyGoalProgress</dt><dd>{summary.weeklyGoalProgress}</dd></div>
-								<div><dt>RemainingApplications</dt><dd>{summary.remainingApplications}</dd></div>
-								<div><dt>IsGoalMet</dt><dd>{summary.isGoalMet ? "True" : "False"}</dd></div>
-							</dl>
-						) : (
-							<p className="status-text">No summary payload loaded yet.</p>
-						)}
-					</div>
-
-					<div className="metric-panel metric-panel--wide">
-						<h3>/progress/weekly-goal-progress</h3>
-						{weeklyGoalProgress ? (
-							<dl className="compact-definition-list">
-								<div><dt>WeeklyGoal</dt><dd>{weeklyGoalProgress.weeklyGoal}</dd></div>
-								<div><dt>AppliedThisWeek</dt><dd>{weeklyGoalProgress.appliedThisWeek}</dd></div>
-								<div><dt>RemainingApplications</dt><dd>{weeklyGoalProgress.remainingApplications}</dd></div>
-								<div><dt>IsGoalMet</dt><dd>{weeklyGoalProgress.isGoalMet ? "True" : "False"}</dd></div>
-								<div><dt>WeekStartDate</dt><dd>{weeklyGoalProgress.weekStartDate}</dd></div>
-								<div><dt>WeekEndDate</dt><dd>{weeklyGoalProgress.weekEndDate}</dd></div>
-							</dl>
-						) : (
-							<p className="status-text">No weekly goal payload loaded yet.</p>
-						)}
-					</div>
-				</div>
-
-				<div className="route-actions">
-					<Link className="primary-button route-link" to="/dashboard">
-						Back to Dashboard
-					</Link>
-					<Link className="secondary-button route-link" to="/applications">
-						Go to Applications
-					</Link>
-					<Link className="secondary-button route-link" to="/achievements">
-						Go to Achievements
-					</Link>
-				</div>
+								<article className="progress-insight-card">
+									<p>Last activity</p>
+									<h3>{formatDateLabel(lastActivityDate)}</h3>
+									<span>
+										{isGoalMet
+											? "You hit this week's target. Keep the streak going."
+											: `${remainingApplications} more application${remainingApplications === 1 ? "" : "s"} to hit your weekly goal.`}
+									</span>
+									<Link className="progress-insight-card__link" to="/achievements">
+										See achievements
+									</Link>
+								</article>
+							</aside>
+						</section>
+					</>
+				)}
 			</section>
 		</main>
 	);
