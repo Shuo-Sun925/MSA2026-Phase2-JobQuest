@@ -91,17 +91,14 @@ export default function LoginPage() {
 					<div className="auth-copy auth-copy--login">
 						<p className="auth-copy__eyebrow">YOUR CAREER CATALYST</p>
 						<h1>
-							Track applications.
-							<span> Build momentum.</span>
-							<br />
-							Level up.
+							<span className="auth-copy__line">Track applications.</span>
+							<span className="auth-copy__line auth-copy__line--accent">Build momentum.</span>
+							<span className="auth-copy__line auth-copy__line--accent">Level up.</span>
 						</h1>
-						<p className="auth-copy__vertical">PROFESSIONAL GROWTH PLATFORM</p>
 					</div>
 				</div>
 
 				<section className="auth-layout__panel auth-layout__panel--login">
-					<div className="auth-panel__corner" aria-hidden="true">◔</div>
 					<div className="auth-panel__content">
 						<header className="auth-panel__header">
 							<h2>Welcome Back</h2>

@@ -130,7 +130,6 @@ export default function RegisterPage() {
 
 				<section className="auth-layout__panel auth-layout__panel--register">
 					<div className="auth-panel__content auth-panel__content--register">
-						<div className="auth-panel__sun" aria-hidden="true">☼</div>
 						<div className="auth-register-card">
 							<header className="auth-panel__header auth-panel__header--compact">
 								<h2>Create Account</h2>
@@ -206,8 +205,6 @@ export default function RegisterPage() {
 								<Link to="/login">← Back to Login</Link>
 							</div>
 						</div>
-
-						<p className="auth-panel__copyright">© 2024</p>
 					</div>
 				</section>
 			</section>
