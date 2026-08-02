@@ -2748,6 +2748,10 @@
     padding-right: 22px;
   }
 
+  .auth-copy--register h1 {
+    white-space: normal;
+  }
+
   .dashboard-panel--achievements {
     margin-top: 0;
   }
@@ -2839,10 +2843,11 @@
 }
 
 .auth-layout__visual--register {
-  padding: 16px clamp(20px, 2.4vw, 30px) 10px;
+  padding: 16px clamp(14px, 1.8vw, 22px) 10px;
   display: grid;
-  align-content: space-between;
-  gap: 10px;
+  grid-template-rows: auto auto auto;
+  align-content: start;
+  gap: 8px;
   background:
     radial-gradient(circle at 100% 100%, rgba(103, 203, 255, 0.22), transparent 35%),
     linear-gradient(180deg, #0e6f99 0%, #0d6386 100%);
@@ -2908,6 +2913,10 @@
 .auth-register-brand {
   display: inline-flex;
   align-items: center;
+}
+
+.auth-register-brand {
+  justify-self: center;
 }
 
 .auth-login-badge {
@@ -2993,13 +3002,17 @@
 .auth-copy--register {
   display: grid;
   gap: 10px;
-  max-width: 31rem;
+  width: min(100%, 42rem);
+  align-self: start;
+  justify-self: center;
+  justify-items: center;
+  text-align: center;
 }
 
 .auth-copy--register h1 {
-  max-width: 10ch;
-  font-size: clamp(1.95rem, 3.4vw, 3.05rem);
+  font-size: clamp(1.82rem, 3.15vw, 2.88rem);
   line-height: 1;
+  white-space: nowrap;
   color: #fff;
 }
 
@@ -3012,6 +3025,7 @@
 
 .auth-register-preview {
   position: relative;
+  width: 100%;
   min-height: 0;
   border-radius: 18px;
   overflow: hidden;
@@ -3019,7 +3033,7 @@
 }
 
 .auth-register-preview img {
-  max-height: min(25vh, 220px);
+  max-height: min(48vh, 380px);
   object-fit: cover;
 }
 
@@ -3807,6 +3821,13 @@
     justify-items: start;
     text-align: left;
     padding: 0;
+  }
+
+  .auth-copy--register {
+    width: min(100%, 42rem);
+    justify-self: center;
+    justify-items: center;
+    text-align: center;
   }
 
   .auth-copy__vertical {
