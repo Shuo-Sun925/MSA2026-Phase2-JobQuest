@@ -68,7 +68,7 @@ function LogoutIcon() {
 	return (
 		<svg viewBox="0 0 24 24" aria-hidden="true">
 			<path
-				d="M10 17H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4m4 4 4 4-4 4m-6-4h10"
+				d="M10 7V5h8v14h-8v-2M14 12H4m0 0 3-3m-3 3 3 3"
 				fill="none"
 				stroke="currentColor"
 				strokeLinecap="round"
