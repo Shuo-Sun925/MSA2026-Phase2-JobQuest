@@ -3023,6 +3023,12 @@
   line-height: 1.48;
 }
 
+@media (max-width: 1180px) {
+  .auth-copy--register h1 {
+    white-space: normal;
+  }
+}
+
 .auth-register-preview {
   position: relative;
   width: 100%;
@@ -3852,8 +3858,9 @@
   }
 
   .auth-theme-toggle {
-    top: 16px;
-    right: 20px;
+    position: static;
+    justify-self: end;
+    margin: 16px 20px 0;
   }
 
   .connection-grid,
@@ -3999,7 +4006,8 @@
     min-height: 100dvh;
   }
 
-  .auth-login-badge {
+  .auth-login-badge,
+  .auth-register-brand {
     justify-self: start;
     padding: 0;
   }
@@ -4028,8 +4036,7 @@
   }
 
   .auth-theme-toggle {
-    top: 12px;
-    right: 14px;
+    margin: 12px 14px 0;
     min-height: 38px;
     padding: 0 12px;
     font-size: 0.62rem;
