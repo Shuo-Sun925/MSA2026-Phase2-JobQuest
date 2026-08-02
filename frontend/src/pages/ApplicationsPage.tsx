@@ -596,12 +596,12 @@ export default function ApplicationsPage() {
 		}
 
 		try {
-			const createdApplication = await createApplication(toJobApplicationUpsertRequest(draft));
+			await createApplication(toJobApplicationUpsertRequest(draft));
 			setSearchQuery("");
 			setFieldErrors({});
 			setFormAlert(null);
 			clearValidationErrors();
-			navigate(`/applications/${createdApplication.id}`, { replace: true });
+			navigate("/applications", { replace: true });
 		} catch {
 			return;
 		}
@@ -644,7 +644,7 @@ export default function ApplicationsPage() {
 		setFormAlert(null);
 		setIsLocationSuggestionsOpen(false);
 		clearValidationErrors();
-		void loadApplicationById(application.id).catch(() => undefined);
+		navigate(`/applications/${application.id}`);
 	}
 
 	function handleCancel() {
@@ -656,13 +656,8 @@ export default function ApplicationsPage() {
 			return;
 		}
 
-		if (draftMode === "edit" && selectedApplication) {
-			setDraft(toJobApplicationDraft(selectedApplication));
-			setFieldErrors({});
-			setFormAlert(null);
-			setIsLocationSuggestionsOpen(false);
-			clearValidationErrors();
-			resetStatus("Edits reverted.");
+		if (draftMode === "edit") {
+			navigate("/applications", { replace: true });
 			return;
 		}
 
