@@ -149,7 +149,7 @@ function formatAchievementDate(value: string | null) {
 }
 
 export default function AchievementsPage() {
-	const { logout } = useAuthStore();
+	const { currentUser, logout } = useAuthStore();
 	const { theme, toggleTheme } = useDashboardTheme();
 	const achievements = useAchievementsStore((state) => state.achievements);
 	const hasLoadedAchievements = useAchievementsStore((state) => state.hasLoadedAchievements);
@@ -210,10 +210,19 @@ export default function AchievementsPage() {
 						<span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
 					</button>
 
-					<button className="dashboard-logout" type="button" onClick={() => logout()}>
-						<LogoutIcon />
-						<span>Logout</span>
-					</button>
+					<div className="dashboard-sidebar__session">
+						<div className="dashboard-sidebar__account" aria-label="Signed in user">
+							<span className="dashboard-sidebar__account-label">Signed in</span>
+							<strong className="dashboard-sidebar__account-value">
+								{currentUser?.username ?? "JobQuest User"}
+							</strong>
+						</div>
+
+						<button className="dashboard-logout" type="button" onClick={() => logout()}>
+							<LogoutIcon />
+							<span>Logout</span>
+						</button>
+					</div>
 				</div>
 			</aside>
 

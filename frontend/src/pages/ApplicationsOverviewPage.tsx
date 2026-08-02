@@ -95,31 +95,6 @@ function SearchIcon() {
 	);
 }
 
-function BellIcon() {
-	return (
-		<svg viewBox="0 0 24 24" aria-hidden="true">
-			<path
-				d="M12 5a4 4 0 0 0-4 4v2.7c0 .5-.2 1-.5 1.4L6 15h12l-1.5-1.9a2.3 2.3 0 0 1-.5-1.4V9a4 4 0 0 0-4-4Zm-1.2 13a1.2 1.2 0 0 0 2.4 0"
-				fill="none"
-				stroke="currentColor"
-				strokeLinecap="round"
-				strokeLinejoin="round"
-				strokeWidth="1.8"
-			/>
-		</svg>
-	);
-}
-
-function HelpIcon() {
-	return (
-		<svg viewBox="0 0 24 24" aria-hidden="true">
-			<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="1.8" />
-			<path d="M9.8 9.4a2.6 2.6 0 1 1 4.3 2c-.8.7-1.4 1.1-1.4 2.1" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
-			<circle cx="12" cy="16.8" r=".9" fill="currentColor" />
-		</svg>
-	);
-}
-
 function PlusIcon() {
 	return (
 		<svg viewBox="0 0 24 24" aria-hidden="true">
@@ -347,10 +322,19 @@ export default function ApplicationsOverviewPage() {
 						<span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
 					</button>
 
-					<button className="dashboard-logout" type="button" onClick={() => logout()}>
-						<LogoutIcon />
-						<span>Logout</span>
-					</button>
+					<div className="dashboard-sidebar__session">
+						<div className="dashboard-sidebar__account" aria-label="Signed in user">
+							<span className="dashboard-sidebar__account-label">Signed in</span>
+							<strong className="dashboard-sidebar__account-value">
+								{currentUser?.username ?? "JobQuest User"}
+							</strong>
+						</div>
+
+						<button className="dashboard-logout" type="button" onClick={() => logout()}>
+							<LogoutIcon />
+							<span>Logout</span>
+						</button>
+					</div>
 				</div>
 			</aside>
 
@@ -365,18 +349,6 @@ export default function ApplicationsOverviewPage() {
 							placeholder="Search by company, role, or location..."
 						/>
 					</label>
-
-					<div className="workspace-topbar__meta">
-						<button className="workspace-icon-button" type="button" aria-label="Notifications">
-							<BellIcon />
-						</button>
-						<button className="workspace-icon-button" type="button" aria-label="Help">
-							<HelpIcon />
-						</button>
-						<div className="workspace-topbar__profile">
-							<span>{currentUser?.username ?? "JobQuest User"}</span>
-						</div>
-					</div>
 				</header>
 
 				<section className="applications-overview">
