@@ -14,6 +14,7 @@ import {
 	fetchCurrentUser,
 	getStoredAccessToken,
 	getStoredSession,
+	isSessionExpired,
 	login as loginRequest,
 	register as registerRequest,
 } from "../services/authService";
@@ -31,6 +32,72 @@ interface AuthStoreState {
 	logout: (message?: string) => void;
 	handleUnauthorized: () => void;
 	resetError: () => void;
+}
+
+let sessionExpiryTimeout: number | null = null;
+
+function clearSessionExpiryTimeout() {
+	if (sessionExpiryTimeout !== null) {
+		window.clearTimeout(sessionExpiryTimeout);
+		sessionExpiryTimeout = null;
+	}
+}
+
+function buildSignedOutState(message: string, requestError = "") {
+	useAchievementsStore.getState().resetStore();
+	useJobApplicationsStore.getState().resetStore();
+	useProgressStore.getState().resetStore();
+
+	return {
+		session: null,
+		currentUser: null,
+		isSubmitting: false,
+		isLoadingProfile: false,
+		requestError,
+		statusMessage: message,
+	};
+}
+
+function clearSessionWithMessage(
+	set: (partial: Partial<AuthStoreState>) => void,
+	message: string,
+	requestError = "",
+) {
+	clearSessionExpiryTimeout();
+	clearStoredSession();
+	set(buildSignedOutState(message, requestError));
+}
+
+function syncSessionExpiry() {
+	clearSessionExpiryTimeout();
+
+	const session = useAuthStore.getState().session;
+
+	if (!session) {
+		return;
+	}
+
+	if (isSessionExpired(session.expiresAt)) {
+		useAuthStore
+			.getState()
+			.logout("Your session has expired. Please sign in again.");
+		return;
+	}
+
+	const expiresAtMs = Date.parse(session.expiresAt);
+
+	if (Number.isNaN(expiresAtMs)) {
+		useAuthStore
+			.getState()
+			.logout("Your session has expired. Please sign in again.");
+		return;
+	}
+
+	sessionExpiryTimeout = window.setTimeout(() => {
+		useAuthStore
+			.getState()
+			.logout("Your session has expired. Please sign in again.");
+	}, Math.max(expiresAtMs - Date.now(), 0));
 }
 
 function getAuthErrorMessage(
@@ -199,41 +266,39 @@ export const useAuthStore = create<AuthStoreState>((set) => ({
 	},
 
 	logout(message = "Local session cleared. The user has been signed out.") {
-		clearStoredSession();
-		useAchievementsStore.getState().resetStore();
-		useJobApplicationsStore.getState().resetStore();
-		useProgressStore.getState().resetStore();
-
-		set({
-			session: null,
-			currentUser: null,
-			isSubmitting: false,
-			isLoadingProfile: false,
-			requestError: "",
-			statusMessage: message,
-		});
+		clearSessionWithMessage(set, message);
 	},
 
 	handleUnauthorized() {
-		clearStoredSession();
-		useAchievementsStore.getState().resetStore();
-		useJobApplicationsStore.getState().resetStore();
-		useProgressStore.getState().resetStore();
-
-		set({
-			session: null,
-			currentUser: null,
-			isSubmitting: false,
-			isLoadingProfile: false,
-			requestError: "The sign-in state is no longer valid. Please sign in again.",
-			statusMessage: "The JWT is expired or invalid. The local session has been cleared.",
-		});
+		clearSessionWithMessage(
+			set,
+			"The JWT is expired or invalid. The local session has been cleared.",
+			"The sign-in state is no longer valid. Please sign in again.",
+		);
 	},
 
 	resetError() {
 		set({ requestError: "" });
 	},
 }));
+
+useAuthStore.subscribe((state, previousState) => {
+	if (state.session !== previousState.session) {
+		syncSessionExpiry();
+	}
+});
+
+if (typeof window !== "undefined") {
+	syncSessionExpiry();
+
+	window.addEventListener("focus", syncSessionExpiry);
+	window.addEventListener("pageshow", syncSessionExpiry);
+	document.addEventListener("visibilitychange", () => {
+		if (document.visibilityState === "visible") {
+			syncSessionExpiry();
+		}
+	});
+}
 
 configureApiAuth({
 	getAccessToken: () => getStoredAccessToken(),
