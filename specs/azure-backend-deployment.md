@@ -2,7 +2,7 @@
 
 ## Architecture
 
-- Frontend: Azure Static Web Apps
+- Frontend: Vercel
 - Backend: Azure App Service
 - Database: Azure Database for PostgreSQL
 
