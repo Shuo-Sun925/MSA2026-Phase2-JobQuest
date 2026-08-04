@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json.Serialization;
 using backend.Data;
+using backend.Helpers;
 using backend.Models;
 using backend.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -61,19 +62,10 @@ string[] GetCorsAllowedOrigins(
     }
 
     return configuredOrigins
-        .Where(origin =>
-            Uri.TryCreate(
-                origin,
-                UriKind.Absolute,
-                out var uri
-            )
-            && (
-                uri.Scheme == Uri.UriSchemeHttp
-                || uri.Scheme == Uri.UriSchemeHttps
-            )
-        )
+        .Select(CorsOriginNormalizer.Normalize)
+        .Where(origin => origin is not null)
         .Distinct(StringComparer.OrdinalIgnoreCase)
-        .ToArray();
+        .ToArray()!;
 }
 
 // -------------------------------------------------------
