@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState, type KeyboardEvent } from "react";
 import { NavLink, useNavigate, useParams } from "react-router-dom";
 import logo from "../assets/logo.png";
 import { useDashboardTheme } from "../hooks/useDashboardTheme";
@@ -22,6 +22,105 @@ type ApplicationFormAlert = {
 	title: string;
 	message: string;
 };
+
+type ApplicationEditorState = {
+	draft: JobApplicationDraft;
+	draftMode: ApplicationDraftMode;
+	editorStage: ApplicationEditorStage;
+	fieldErrors: JobApplicationFieldErrors;
+	formAlert: ApplicationFormAlert | null;
+	isLocationSuggestionsOpen: boolean;
+};
+
+type ApplicationEditorAction =
+	| { type: "resetCreate" }
+	| { type: "loadSelectedApplication"; application: JobApplicationResponse }
+	| { type: "updateDraftField"; field: keyof JobApplicationDraft; value: JobApplicationDraft[keyof JobApplicationDraft] }
+	| { type: "clearFieldErrors"; field: JobApplicationFieldName }
+	| { type: "setFieldErrors"; fieldErrors: JobApplicationFieldErrors }
+	| { type: "mergeValidationErrors"; validationErrors: JobApplicationFieldErrors }
+	| { type: "patch"; patch: Partial<ApplicationEditorState> };
+
+function createEmptyEditorState(): ApplicationEditorState {
+	return {
+		draft: EMPTY_JOB_APPLICATION_DRAFT,
+		draftMode: "create",
+		editorStage: "edit",
+		fieldErrors: {},
+		formAlert: null,
+		isLocationSuggestionsOpen: false,
+	};
+}
+
+function createEditEditorState(application: JobApplicationResponse): ApplicationEditorState {
+	return {
+		...createEmptyEditorState(),
+		draft: toJobApplicationDraft(application),
+		draftMode: "edit",
+	};
+}
+
+function applicationEditorReducer(
+	state: ApplicationEditorState,
+	action: ApplicationEditorAction,
+): ApplicationEditorState {
+	switch (action.type) {
+		case "resetCreate":
+			return createEmptyEditorState();
+		case "loadSelectedApplication":
+			return createEditEditorState(action.application);
+		case "updateDraftField":
+			return {
+				...state,
+				draft: {
+					...state.draft,
+					[action.field]: action.value,
+				},
+			};
+		case "clearFieldErrors": {
+			const nextErrors = { ...state.fieldErrors };
+			delete nextErrors[action.field];
+
+			if (
+				action.field === "status"
+				|| action.field === "appliedDate"
+				|| action.field === "nextFollowUpDate"
+			) {
+				delete nextErrors.appliedDate;
+				delete nextErrors.nextFollowUpDate;
+			}
+
+			return {
+				...state,
+				fieldErrors: nextErrors,
+			};
+		}
+		case "setFieldErrors":
+			return {
+				...state,
+				fieldErrors: action.fieldErrors,
+			};
+		case "mergeValidationErrors":
+			return {
+				...state,
+				fieldErrors: {
+					...state.fieldErrors,
+					...action.validationErrors,
+				},
+				editorStage:
+					state.draftMode === "create" && state.editorStage === "review"
+						? "edit"
+						: state.editorStage,
+			};
+		case "patch":
+			return {
+				...state,
+				...action.patch,
+			};
+		default:
+			return state;
+	}
+}
 
 const LOCATION_SUGGESTIONS = [
 	"Auckland",
@@ -333,15 +432,13 @@ export default function ApplicationsPage() {
 	const clearSelection = useJobApplicationsStore((state) => state.clearSelection);
 	const clearValidationErrors = useJobApplicationsStore((state) => state.clearValidationErrors);
 	const resetStatus = useJobApplicationsStore((state) => state.resetStatus);
-	const [draft, setDraft] = useState<JobApplicationDraft>(
-		EMPTY_JOB_APPLICATION_DRAFT,
-	);
 	const [searchQuery, setSearchQuery] = useState("");
-	const [draftMode, setDraftMode] = useState<ApplicationDraftMode>("create");
-	const [editorStage, setEditorStage] = useState<ApplicationEditorStage>("edit");
-	const [fieldErrors, setFieldErrors] = useState<JobApplicationFieldErrors>({});
-	const [formAlert, setFormAlert] = useState<ApplicationFormAlert | null>(null);
-	const [isLocationSuggestionsOpen, setIsLocationSuggestionsOpen] = useState(false);
+	const [editorState, dispatchEditor] = useReducer(
+		applicationEditorReducer,
+		undefined,
+		createEmptyEditorState,
+	);
+	const { draft, draftMode, editorStage, fieldErrors, formAlert, isLocationSuggestionsOpen } = editorState;
 	const formAlertRef = useRef<HTMLDivElement | null>(null);
 	const isMutating = isSubmitting || isDeleting;
 	const isActionLocked = isMutating || isLoadingList || isLoadingDetails;
@@ -352,13 +449,17 @@ export default function ApplicationsPage() {
 		}),
 		[fieldErrors, validationErrors],
 	);
-	const visibleAlert = requestError
-		? {
-			tone: "error" as const,
-			title: "We couldn't save this application yet.",
-			message: requestError,
+	const visibleAlert = useMemo(() => {
+		if (requestError) {
+			return {
+				tone: "error" as const,
+				title: "We couldn't save this application yet.",
+				message: requestError,
+			};
 		}
-		: formAlert;
+
+		return formAlert;
+	}, [formAlert, requestError]);
 	const isCreateReviewing = draftMode === "create" && editorStage === "review";
 	const isEditingRoute = typeof applicationId === "string";
 
@@ -373,12 +474,7 @@ export default function ApplicationsPage() {
 	useEffect(() => {
 		if (!isEditingRoute) {
 			clearSelection();
-			setDraft(EMPTY_JOB_APPLICATION_DRAFT);
-			setDraftMode("create");
-			setEditorStage("edit");
-			setFieldErrors({});
-			setFormAlert(null);
-			setIsLocationSuggestionsOpen(false);
+			dispatchEditor({ type: "resetCreate" });
 			clearValidationErrors();
 			return;
 		}
@@ -394,9 +490,14 @@ export default function ApplicationsPage() {
 			return;
 		}
 
-		setFieldErrors({});
-		setFormAlert(null);
-		setIsLocationSuggestionsOpen(false);
+		dispatchEditor({
+			type: "patch",
+			patch: {
+				fieldErrors: {},
+				formAlert: null,
+				isLocationSuggestionsOpen: false,
+			},
+		});
 		clearValidationErrors();
 		void loadApplicationById(parsedApplicationId).catch(() => {
 			navigate("/applications", { replace: true });
@@ -420,23 +521,13 @@ export default function ApplicationsPage() {
 			}
 
 			if (draftMode === "edit" && activeApplicationId === null) {
-				setDraft(EMPTY_JOB_APPLICATION_DRAFT);
-				setDraftMode("create");
-				setEditorStage("edit");
-				setFieldErrors({});
-				setFormAlert(null);
-				setIsLocationSuggestionsOpen(false);
+				dispatchEditor({ type: "resetCreate" });
 			}
 
 			return;
 		}
 
-		setDraft(toJobApplicationDraft(selectedApplication));
-		setDraftMode("edit");
-		setEditorStage("edit");
-		setFieldErrors({});
-		setFormAlert(null);
-		setIsLocationSuggestionsOpen(false);
+		dispatchEditor({ type: "loadSelectedApplication", application: selectedApplication });
 	}, [activeApplicationId, draftMode, isEditingRoute, navigate, selectedApplication]);
 
 	useEffect(() => {
@@ -444,14 +535,7 @@ export default function ApplicationsPage() {
 			return;
 		}
 
-		setFieldErrors((currentErrors: JobApplicationFieldErrors) => ({
-			...currentErrors,
-			...validationErrors,
-		}));
-
-		if (draftMode === "create" && editorStage === "review") {
-			setEditorStage("edit");
-		}
+		dispatchEditor({ type: "mergeValidationErrors", validationErrors });
 	}, [draftMode, editorStage, validationErrors]);
 
 	useEffect(() => {
@@ -505,22 +589,8 @@ export default function ApplicationsPage() {
 		field: Key,
 		value: JobApplicationDraft[Key],
 	) {
-		setDraft((currentDraft) => ({
-			...currentDraft,
-			[field]: value,
-		}));
-
-		setFieldErrors((currentErrors: JobApplicationFieldErrors) => {
-			const nextErrors = { ...currentErrors };
-			delete nextErrors[field];
-
-			if (field === "status" || field === "appliedDate" || field === "nextFollowUpDate") {
-				delete nextErrors.appliedDate;
-				delete nextErrors.nextFollowUpDate;
-			}
-
-			return nextErrors;
-		});
+		dispatchEditor({ type: "updateDraftField", field, value });
+		dispatchEditor({ type: "clearFieldErrors", field });
 
 		const fieldsToClear = [field] as JobApplicationFieldName[];
 
@@ -531,7 +601,7 @@ export default function ApplicationsPage() {
 		clearValidationErrors(fieldsToClear);
 
 		if (formAlert) {
-			setFormAlert(null);
+			dispatchEditor({ type: "patch", patch: { formAlert: null } });
 		}
 
 		if (requestError) {
@@ -540,34 +610,39 @@ export default function ApplicationsPage() {
 	}
 
 	function handleLocationFocus() {
-		setIsLocationSuggestionsOpen(true);
+		dispatchEditor({ type: "patch", patch: { isLocationSuggestionsOpen: true } });
 	}
 
 	function handleLocationBlur() {
 		window.setTimeout(() => {
-			setIsLocationSuggestionsOpen(false);
+			dispatchEditor({ type: "patch", patch: { isLocationSuggestionsOpen: false } });
 		}, 120);
 	}
 
 	function handleLocationSuggestionSelect(location: string) {
 		updateDraftField("location", location);
-		setIsLocationSuggestionsOpen(false);
+		dispatchEditor({ type: "patch", patch: { isLocationSuggestionsOpen: false } });
 	}
 
 	function validateCurrentDraft() {
 		const nextFieldErrors = validateApplicationDraft(draft, draftMode);
 
-		setFieldErrors(nextFieldErrors);
+		dispatchEditor({ type: "setFieldErrors", fieldErrors: nextFieldErrors });
 
 		if (Object.keys(nextFieldErrors).length === 0) {
-			setFormAlert(null);
+			dispatchEditor({ type: "patch", patch: { formAlert: null } });
 			return true;
 		}
 
-		setFormAlert({
-			tone: "error",
-			title: "Please fix the highlighted fields.",
-			message: "Required fields are marked and invalid values are shown inline below.",
+		dispatchEditor({
+			type: "patch",
+			patch: {
+				formAlert: {
+					tone: "error",
+					title: "Please fix the highlighted fields.",
+					message: "Required fields are marked and invalid values are shown inline below.",
+				},
+			},
 		});
 
 		return false;
@@ -579,13 +654,8 @@ export default function ApplicationsPage() {
 		}
 
 		clearSelection();
-		setDraft(EMPTY_JOB_APPLICATION_DRAFT);
+		dispatchEditor({ type: "resetCreate" });
 		setSearchQuery("");
-		setDraftMode("create");
-		setEditorStage("edit");
-		setFieldErrors({});
-		setFormAlert(null);
-		setIsLocationSuggestionsOpen(false);
 		clearValidationErrors();
 		resetStatus("Application draft reset.");
 	}
@@ -598,8 +668,7 @@ export default function ApplicationsPage() {
 		try {
 			await createApplication(toJobApplicationUpsertRequest(draft));
 			setSearchQuery("");
-			setFieldErrors({});
-			setFormAlert(null);
+			dispatchEditor({ type: "patch", patch: { fieldErrors: {}, formAlert: null } });
 			clearValidationErrors();
 			navigate("/applications", { replace: true });
 		} catch {
@@ -614,8 +683,7 @@ export default function ApplicationsPage() {
 
 		try {
 			await updateApplication(activeApplicationId, toJobApplicationUpsertRequest(draft));
-			setFieldErrors({});
-			setFormAlert(null);
+			dispatchEditor({ type: "patch", patch: { fieldErrors: {}, formAlert: null } });
 			clearValidationErrors();
 		} catch {
 			return;
@@ -640,18 +708,28 @@ export default function ApplicationsPage() {
 			return;
 		}
 
-		setFieldErrors({});
-		setFormAlert(null);
-		setIsLocationSuggestionsOpen(false);
+		dispatchEditor({
+			type: "patch",
+			patch: {
+				fieldErrors: {},
+				formAlert: null,
+				isLocationSuggestionsOpen: false,
+			},
+		});
 		clearValidationErrors();
 		navigate(`/applications/${application.id}`);
 	}
 
 	function handleCancel() {
 		if (draftMode === "create" && editorStage === "review") {
-			setEditorStage("edit");
-			setFormAlert(null);
-			setIsLocationSuggestionsOpen(false);
+			dispatchEditor({
+				type: "patch",
+				patch: {
+					editorStage: "edit",
+					formAlert: null,
+					isLocationSuggestionsOpen: false,
+				},
+			});
 			resetStatus("Returned to editing.");
 			return;
 		}
@@ -666,10 +744,6 @@ export default function ApplicationsPage() {
 
 	async function handleSubmit() {
 		if (!validateCurrentDraft()) {
-			if (draftMode === "create" && editorStage === "review") {
-				setEditorStage("edit");
-			}
-
 			return;
 		}
 
@@ -679,13 +753,18 @@ export default function ApplicationsPage() {
 		}
 
 		if (editorStage === "edit") {
-			setEditorStage("review");
-			setFormAlert({
-				tone: "info",
-				title: "Review before create",
-				message: "Double-check the summary below, then confirm to create the application.",
+			dispatchEditor({
+				type: "patch",
+				patch: {
+					editorStage: "review",
+					formAlert: {
+						tone: "info",
+						title: "Review before create",
+						message: "Double-check the summary below, then confirm to create the application.",
+					},
+					isLocationSuggestionsOpen: false,
+				},
 			});
-			setIsLocationSuggestionsOpen(false);
 			resetStatus("Review your application before creating it.");
 			return;
 		}

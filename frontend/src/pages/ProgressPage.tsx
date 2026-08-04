@@ -172,7 +172,8 @@ export default function ProgressPage() {
 	const currentLevel = progress?.currentLevel ?? summary?.currentLevel ?? 1;
 	const currentStreak = progress?.currentStreak ?? summary?.currentStreak ?? 0;
 	const weeklyGoal = weeklyGoalProgress?.weeklyGoal ?? summary?.weeklyGoal ?? progress?.weeklyGoal ?? 5;
-	const [selectedWeeklyGoal, setSelectedWeeklyGoal] = useState(weeklyGoal);
+	const [pendingWeeklyGoal, setPendingWeeklyGoal] = useState<number | null>(null);
+	const selectedWeeklyGoal = pendingWeeklyGoal ?? weeklyGoal;
 	const appliedThisWeek = weeklyGoalProgress?.appliedThisWeek ?? summary?.weeklyGoalProgress ?? 0;
 	const remainingApplications = weeklyGoalProgress?.remainingApplications ?? summary?.remainingApplications ?? Math.max(weeklyGoal - appliedThisWeek, 0);
 	const isGoalMet = weeklyGoalProgress?.isGoalMet ?? summary?.isGoalMet ?? false;
@@ -188,7 +189,7 @@ export default function ProgressPage() {
 	const weeklyProgressPercent = Math.min(100, Math.round((appliedThisWeek / Math.max(weeklyGoal, 1)) * 100));
 	const isReady = hasLoadedProgress || hasLoadedSummary || hasLoadedWeeklyGoalProgress;
 	const weeklyGoalCompletionText = `${appliedThisWeek} of ${weeklyGoal} applications completed`;
-	const isSaveDisabled = isUpdatingWeeklyGoal || selectedWeeklyGoal === weeklyGoal;
+	const isSaveDisabled = isUpdatingWeeklyGoal || pendingWeeklyGoal === null || selectedWeeklyGoal === weeklyGoal;
 	const dashboardShellClassName =
 		theme === "dark" ? "dashboard-shell dashboard-shell--dark" : "dashboard-shell";
 
@@ -213,13 +214,10 @@ export default function ProgressPage() {
 		loadWeeklyGoalProgress,
 	]);
 
-	useEffect(() => {
-		setSelectedWeeklyGoal(weeklyGoal);
-	}, [weeklyGoal]);
-
 	async function handleSaveWeeklyGoal() {
 		try {
 			await updateWeeklyGoal(selectedWeeklyGoal);
+			setPendingWeeklyGoal(null);
 		} catch {
 			return;
 		}
@@ -376,7 +374,7 @@ export default function ProgressPage() {
 													type="button"
 													onClick={() => {
 														clearWeeklyGoalUpdateState();
-														setSelectedWeeklyGoal(goalOption);
+														setPendingWeeklyGoal(goalOption);
 													}}
 													disabled={isUpdatingWeeklyGoal}
 												>

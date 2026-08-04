@@ -2,8 +2,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import ProgressPage from "./ProgressPage";
-import { useProgressStore } from "../store/useProgressStore";
+import ProgressPage from "../../src/pages/ProgressPage";
+import { useProgressStore } from "../../src/store/useProgressStore";
 
 const {
 	logoutMock,
@@ -19,14 +19,14 @@ const {
 	updateWeeklyGoalMock: vi.fn(),
 }));
 
-vi.mock("../store/useAuthStore", () => ({
+vi.mock("../../src/store/useAuthStore", () => ({
 	useAuthStore: (selector?: (state: { logout: () => void }) => unknown) => {
 		const state = { logout: logoutMock };
 		return typeof selector === "function" ? selector(state) : state;
 	},
 }));
 
-vi.mock("../services/progressService", () => ({
+vi.mock("../../src/services/progressService", () => ({
 	fetchProgress: fetchProgressMock,
 	fetchProgressSummary: fetchProgressSummaryMock,
 	fetchWeeklyGoalProgress: fetchWeeklyGoalProgressMock,
@@ -147,5 +147,22 @@ describe("ProgressPage weekly goal editor", () => {
 		});
 
 		expect(screen.getByText("Server unavailable")).toBeInTheDocument();
+	});
+
+	it("surfaces validation-style errors for an invalid weekly goal update", async () => {
+		updateWeeklyGoalMock.mockRejectedValue(new Error("Weekly goal must be between 1 and 20."));
+
+		renderProgressPage();
+		const user = userEvent.setup();
+
+		await user.click(screen.getByRole("button", { name: "10" }));
+		await user.click(screen.getByRole("button", { name: "Save goal" }));
+
+		await waitFor(() => {
+			expect(updateWeeklyGoalMock).toHaveBeenCalledWith({ weeklyGoal: 10 });
+		});
+
+		expect(screen.getByText("Weekly goal must be between 1 and 20.")).toBeInTheDocument();
+		expect(screen.getByText("2 of 5 applications completed")).toBeInTheDocument();
 	});
 });
