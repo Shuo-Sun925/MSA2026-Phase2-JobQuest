@@ -20,7 +20,7 @@ Configure these application settings in the Azure Web App:
 
 Notes:
 
-- For local frontend development, `http://localhost:5173` is already configured in [backend/appsettings.Development.json](/Users/sunshuo/Desktop/msa2026/MSA2026-Phase2-JobQuest/backend/appsettings.Development.json).
+- For local frontend development, `http://localhost:5173` is already configured in [backend/appsettings.Development.json](../backend/appsettings.Development.json).
 - In App Service, `Cors__AllowedOrigins` can contain one origin or multiple origins separated by commas or semicolons.
 - Do not store secrets in `appsettings.json`.
 
@@ -36,7 +36,7 @@ Required repository variable:
 
 - `AZURE_WEBAPP_NAME`
 
-These are used by [.github/workflows/backend-appservice.yml](/Users/sunshuo/Desktop/msa2026/MSA2026-Phase2-JobQuest/.github/workflows/backend-appservice.yml).
+These are used by [.github/workflows/backend-appservice.yml](../.github/workflows/backend-appservice.yml).
 
 ## Create The Azure App Service
 
