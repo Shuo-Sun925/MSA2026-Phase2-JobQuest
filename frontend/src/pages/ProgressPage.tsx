@@ -93,7 +93,15 @@ function TargetIcon() {
 	return (
 		<svg viewBox="0 0 24 24" aria-hidden="true">
 			<path
-				d="M12 3v4m0 10v4m9-9h-4M7 12H3m15.36-6.36-2.83 2.83M8.47 15.53l-2.83 2.83m0-12.72 2.83 2.83m9.89 9.89-2.83-2.83M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+				d="M6 4v16"
+				fill="none"
+				stroke="currentColor"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+				strokeWidth="1.8"
+			/>
+			<path
+				d="M6 6 16 9 6 12Z"
 				fill="none"
 				stroke="currentColor"
 				strokeLinecap="round"
