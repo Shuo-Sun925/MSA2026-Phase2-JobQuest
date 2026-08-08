@@ -219,7 +219,7 @@ describe("ApplicationsPage", () => {
 
 		expect(screen.queryByRole("button", { name: /Engineer/i })).not.toBeInTheDocument();
 		expect(screen.getByRole("button", { name: /New draft/i })).toBeInTheDocument();
-		expect(screen.getByText("1 saved application(s)")).toBeInTheDocument();
+		expect(screen.getByText("Filtered results")).toBeInTheDocument();
 	});
 
 	it("positions the new application form and focuses company name on entry", async () => {
