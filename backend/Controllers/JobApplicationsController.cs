@@ -185,7 +185,7 @@ public class JobApplicationsController : ControllerBase
             return BadRequest(new
             {
                 message =
-                    $"Invalid status transition from {application.Status} to {request.Status}."
+                    $"You can't move an application from {FormatStatus(application.Status)} back to {FormatStatus(request.Status)}."
             });
         }
 
@@ -276,6 +276,16 @@ public class JobApplicationsController : ControllerBase
             User,
             out userId
         );
+    }
+
+    private static string FormatStatus(
+        JobApplicationStatus status)
+    {
+        return status switch
+        {
+            JobApplicationStatus.OnlineAssessment => "Online Assessment",
+            _ => status.ToString()
+        };
     }
 
     private static JobApplicationResponse MapToResponse(

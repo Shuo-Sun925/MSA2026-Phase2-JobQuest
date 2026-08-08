@@ -41,6 +41,16 @@ function renderProgressPage() {
 	);
 }
 
+async function renderProgressPageAndWaitForRefresh() {
+	renderProgressPage();
+
+	await waitFor(() => {
+		expect(fetchProgressMock).toHaveBeenCalledTimes(1);
+		expect(fetchProgressSummaryMock).toHaveBeenCalledTimes(1);
+		expect(fetchWeeklyGoalProgressMock).toHaveBeenCalledTimes(1);
+	});
+}
+
 describe("ProgressPage weekly goal editor", () => {
 	beforeEach(() => {
 		logoutMock.mockReset();
@@ -49,13 +59,48 @@ describe("ProgressPage weekly goal editor", () => {
 		fetchWeeklyGoalProgressMock.mockReset();
 		updateWeeklyGoalMock.mockReset();
 
+		fetchProgressMock.mockResolvedValue({
+			totalPoints: 120,
+			currentLevel: 3,
+			currentStreak: 4,
+			lastActivityDate: "2026-07-31",
+			weeklyGoal: 5,
+		});
+		fetchProgressSummaryMock.mockResolvedValue({
+			totalApplications: 8,
+			applicationsThisWeek: 2,
+			savedCount: 1,
+			appliedCount: 3,
+			onlineAssessmentCount: 1,
+			interviewCount: 1,
+			offerCount: 0,
+			rejectedCount: 2,
+			withdrawnCount: 1,
+			totalPoints: 120,
+			currentLevel: 3,
+			currentStreak: 4,
+			lastActivityDate: "2026-07-31",
+			weeklyGoal: 5,
+			weeklyGoalProgress: 2,
+			remainingApplications: 3,
+			isGoalMet: false,
+		});
+		fetchWeeklyGoalProgressMock.mockResolvedValue({
+			weeklyGoal: 5,
+			appliedThisWeek: 2,
+			remainingApplications: 3,
+			isGoalMet: false,
+			weekStartDate: "2026-07-28",
+			weekEndDate: "2026-08-03",
+		});
+
 		const state = useProgressStore.getState();
 
 		useProgressStore.setState({
 			...state,
 			progress: {
 				totalPoints: 120,
-				currentLevel: 2,
+				currentLevel: 3,
 				currentStreak: 4,
 				lastActivityDate: "2026-07-31",
 				weeklyGoal: 5,
@@ -71,7 +116,7 @@ describe("ProgressPage weekly goal editor", () => {
 				rejectedCount: 2,
 				withdrawnCount: 1,
 				totalPoints: 120,
-				currentLevel: 2,
+				currentLevel: 3,
 				currentStreak: 4,
 				lastActivityDate: "2026-07-31",
 				weeklyGoal: 5,
@@ -101,12 +146,78 @@ describe("ProgressPage weekly goal editor", () => {
 		});
 	});
 
-	it("shows the current weekly goal and completion text", () => {
-		renderProgressPage();
+	it("shows the current weekly goal and completion text", async () => {
+		await renderProgressPageAndWaitForRefresh();
+
+		const onlineAssessmentsCard = screen.getByText("Online Assessments").closest(".progress-stage-card");
+		const withdrawnCard = screen.getByText("Withdrawn").closest(".progress-stage-card");
 
 		expect(screen.getByText("Current weekly goal")).toBeInTheDocument();
 		expect(screen.getByText("5 applications")).toBeInTheDocument();
 		expect(screen.getByText("2 of 5 applications completed")).toBeInTheDocument();
+		expect(screen.getByText("80 XP to go")).toBeInTheDocument();
+		expect(screen.getByText("Online Assessments")).toBeInTheDocument();
+		expect(screen.getByText("Withdrawn")).toBeInTheDocument();
+		expect(onlineAssessmentsCard).not.toBeNull();
+		expect(onlineAssessmentsCard).toHaveTextContent("1");
+		expect(withdrawnCard).not.toBeNull();
+		expect(withdrawnCard).toHaveTextContent("1");
+	});
+
+	it("shows max level reached instead of an invalid next-level target at level 5", async () => {
+		const state = useProgressStore.getState();
+
+		useProgressStore.setState({
+			...state,
+			progress: {
+				totalPoints: 350,
+				currentLevel: 5,
+				currentStreak: 4,
+				lastActivityDate: "2026-07-31",
+				weeklyGoal: 5,
+			},
+			summary: {
+				...state.summary!,
+				totalPoints: 350,
+				currentLevel: 5,
+			},
+		});
+
+		fetchProgressMock.mockResolvedValue({
+			totalPoints: 350,
+			currentLevel: 5,
+			currentStreak: 4,
+			lastActivityDate: "2026-07-31",
+			weeklyGoal: 5,
+		});
+		fetchProgressSummaryMock.mockResolvedValue({
+			totalApplications: 8,
+			applicationsThisWeek: 2,
+			savedCount: 1,
+			appliedCount: 3,
+			onlineAssessmentCount: 1,
+			interviewCount: 1,
+			offerCount: 0,
+			rejectedCount: 2,
+			withdrawnCount: 1,
+			totalPoints: 350,
+			currentLevel: 5,
+			currentStreak: 4,
+			lastActivityDate: "2026-07-31",
+			weeklyGoal: 5,
+			weeklyGoalProgress: 2,
+			remainingApplications: 3,
+			isGoalMet: false,
+		});
+
+		await renderProgressPageAndWaitForRefresh();
+
+		expect(screen.getByText("Level 5")).toBeInTheDocument();
+		expect(screen.getByText("Max level reached")).toBeInTheDocument();
+	});
+
+	it("refreshes progress data when the page mounts even if cached data exists", async () => {
+		await renderProgressPageAndWaitForRefresh();
 	});
 
 	it("allows the user to choose a new goal and save it through the API", async () => {
@@ -118,7 +229,7 @@ describe("ProgressPage weekly goal editor", () => {
 			weeklyGoal: 7,
 		});
 
-		renderProgressPage();
+		await renderProgressPageAndWaitForRefresh();
 		const user = userEvent.setup();
 
 		await user.click(screen.getByRole("button", { name: "7" }));
@@ -136,7 +247,7 @@ describe("ProgressPage weekly goal editor", () => {
 	it("shows a clear error message when saving fails", async () => {
 		updateWeeklyGoalMock.mockRejectedValue(new Error("Server unavailable"));
 
-		renderProgressPage();
+		await renderProgressPageAndWaitForRefresh();
 		const user = userEvent.setup();
 
 		await user.click(screen.getByRole("button", { name: "10" }));
@@ -152,7 +263,7 @@ describe("ProgressPage weekly goal editor", () => {
 	it("surfaces validation-style errors for an invalid weekly goal update", async () => {
 		updateWeeklyGoalMock.mockRejectedValue(new Error("Weekly goal must be between 1 and 20."));
 
-		renderProgressPage();
+		await renderProgressPageAndWaitForRefresh();
 		const user = userEvent.setup();
 
 		await user.click(screen.getByRole("button", { name: "10" }));

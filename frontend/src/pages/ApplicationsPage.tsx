@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useReducer, useRef, useState, type KeyboardEvent } from "react";
-import { NavLink, useNavigate, useParams } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type KeyboardEvent } from "react";
+import { NavLink, useBlocker, useNavigate, useParams } from "react-router-dom";
 import logo from "../assets/logo.png";
 import { useDashboardTheme } from "../hooks/useDashboardTheme";
 import { useAuthStore } from "../store/useAuthStore";
@@ -15,10 +15,34 @@ import {
 	type JobApplicationResponse,
 } from "../types/jobApplication";
 
+const ALLOWED_STATUS_TRANSITIONS: Readonly<Record<JobApplicationResponse["status"], readonly JobApplicationResponse["status"][]>> = {
+	Saved: ["Applied", "OnlineAssessment", "Interview", "Offer", "Withdrawn"],
+	Applied: ["OnlineAssessment", "Interview", "Offer", "Rejected", "Withdrawn"],
+	OnlineAssessment: ["Interview", "Offer", "Rejected", "Withdrawn"],
+	Interview: ["Offer", "Rejected", "Withdrawn"],
+	Offer: [],
+	Rejected: [],
+	Withdrawn: [],
+};
+
+function formatApplicationStatus(status: JobApplicationResponse["status"]) {
+	return status === "OnlineAssessment" ? "Online Assessment" : status;
+}
+
+function isValidStatusTransition(
+	currentStatus: JobApplicationResponse["status"],
+	nextStatus: JobApplicationResponse["status"],
+) {
+	if (currentStatus === nextStatus) {
+		return true;
+	}
+
+	return ALLOWED_STATUS_TRANSITIONS[currentStatus].includes(nextStatus);
+}
+
 type ApplicationDraftMode = "create" | "edit";
-type ApplicationEditorStage = "edit" | "review";
 type ApplicationFormAlert = {
-	tone: "error" | "info";
+	tone: "error";
 	title: string;
 	message: string;
 };
@@ -26,7 +50,6 @@ type ApplicationFormAlert = {
 type ApplicationEditorState = {
 	draft: JobApplicationDraft;
 	draftMode: ApplicationDraftMode;
-	editorStage: ApplicationEditorStage;
 	fieldErrors: JobApplicationFieldErrors;
 	formAlert: ApplicationFormAlert | null;
 	isLocationSuggestionsOpen: boolean;
@@ -45,7 +68,6 @@ function createEmptyEditorState(): ApplicationEditorState {
 	return {
 		draft: EMPTY_JOB_APPLICATION_DRAFT,
 		draftMode: "create",
-		editorStage: "edit",
 		fieldErrors: {},
 		formAlert: null,
 		isLocationSuggestionsOpen: false,
@@ -107,10 +129,6 @@ function applicationEditorReducer(
 					...state.fieldErrors,
 					...action.validationErrors,
 				},
-				editorStage:
-					state.draftMode === "create" && state.editorStage === "review"
-						? "edit"
-						: state.editorStage,
 			};
 		case "patch":
 			return {
@@ -158,6 +176,7 @@ function isValidJobLink(value: string) {
 function validateApplicationDraft(
 	draft: JobApplicationDraft,
 	draftMode: ApplicationDraftMode,
+	existingApplication: JobApplicationResponse | null,
 ): JobApplicationFieldErrors {
 	const errors: JobApplicationFieldErrors = {};
 	const companyName = draft.companyName.trim();
@@ -194,8 +213,17 @@ function validateApplicationDraft(
 		errors.notes = "Notes cannot exceed 2000 characters.";
 	}
 
+	if (
+		draftMode === "edit"
+		&& existingApplication
+		&& !isValidStatusTransition(existingApplication.status, draft.status)
+	) {
+		errors.status = `You can't move an application from ${formatApplicationStatus(existingApplication.status)} back to ${formatApplicationStatus(draft.status)}.`;
+		return errors;
+	}
+
 	if (draft.status === "Saved" && draft.appliedDate) {
-		errors.appliedDate = "A saved job application cannot have an applied date.";
+		errors.appliedDate = "Saved applications cannot include an applied date. Clear the date or change the status to Applied.";
 	}
 
 	if (draft.appliedDate && draft.nextFollowUpDate && draft.nextFollowUpDate < draft.appliedDate) {
@@ -208,7 +236,7 @@ function validateApplicationDraft(
 		&& draft.appliedDate
 		&& draft.nextFollowUpDate
 	) {
-		errors.nextFollowUpDate = "A withdrawn application should not have a follow-up date.";
+		errors.nextFollowUpDate = "Withdrawn applications cannot include a follow-up date.";
 	}
 
 	return errors;
@@ -218,10 +246,6 @@ function getFieldClassName(error?: string, isWide = false) {
 	const baseClassName = isWide ? "application-editor__field application-editor__wide-field" : "application-editor__field";
 
 	return error ? `${baseClassName} application-editor__field--error` : baseClassName;
-}
-
-function getReviewValue(value: string) {
-	return value.trim() ? value.trim() : "Not provided";
 }
 
 function DashboardIcon() {
@@ -408,6 +432,20 @@ function getApplicationMeta(application: JobApplicationResponse) {
 	return application.location ?? application.status;
 }
 
+function areDraftsEqual(
+	leftDraft: JobApplicationDraft,
+	rightDraft: JobApplicationDraft,
+) {
+	return leftDraft.companyName === rightDraft.companyName
+		&& leftDraft.jobTitle === rightDraft.jobTitle
+		&& leftDraft.location === rightDraft.location
+		&& leftDraft.jobLink === rightDraft.jobLink
+		&& leftDraft.status === rightDraft.status
+		&& leftDraft.appliedDate === rightDraft.appliedDate
+		&& leftDraft.nextFollowUpDate === rightDraft.nextFollowUpDate
+		&& leftDraft.notes === rightDraft.notes;
+}
+
 export default function ApplicationsPage() {
 	const navigate = useNavigate();
 	const { applicationId } = useParams<{ applicationId?: string }>();
@@ -416,14 +454,12 @@ export default function ApplicationsPage() {
 	const applications = useJobApplicationsStore((state) => state.applications);
 	const selectedApplication = useJobApplicationsStore((state) => state.selectedApplication);
 	const activeApplicationId = useJobApplicationsStore((state) => state.activeApplicationId);
-	const hasLoadedList = useJobApplicationsStore((state) => state.hasLoadedList);
 	const isLoadingList = useJobApplicationsStore((state) => state.isLoadingList);
 	const isLoadingDetails = useJobApplicationsStore((state) => state.isLoadingDetails);
 	const isSubmitting = useJobApplicationsStore((state) => state.isSubmitting);
 	const isDeleting = useJobApplicationsStore((state) => state.isDeleting);
 	const requestError = useJobApplicationsStore((state) => state.requestError);
 	const validationErrors = useJobApplicationsStore((state) => state.validationErrors);
-	const statusMessage = useJobApplicationsStore((state) => state.statusMessage);
 	const listApplications = useJobApplicationsStore((state) => state.listApplications);
 	const loadApplicationById = useJobApplicationsStore((state) => state.loadApplicationById);
 	const createApplication = useJobApplicationsStore((state) => state.createApplication);
@@ -438,8 +474,13 @@ export default function ApplicationsPage() {
 		undefined,
 		createEmptyEditorState,
 	);
-	const { draft, draftMode, editorStage, fieldErrors, formAlert, isLocationSuggestionsOpen } = editorState;
+	const { draft, draftMode, fieldErrors, formAlert, isLocationSuggestionsOpen } = editorState;
+	const [isClearDraftDialogOpen, setIsClearDraftDialogOpen] = useState(false);
 	const formAlertRef = useRef<HTMLDivElement | null>(null);
+	const formRef = useRef<HTMLFormElement | null>(null);
+	const createCompanyNameInputRef = useRef<HTMLInputElement | null>(null);
+	const hasAutoPositionedFormRef = useRef(false);
+	const allowNavigationRef = useRef(false);
 	const isMutating = isSubmitting || isDeleting;
 	const isActionLocked = isMutating || isLoadingList || isLoadingDetails;
 	const mergedFieldErrors = useMemo(
@@ -460,22 +501,51 @@ export default function ApplicationsPage() {
 
 		return formAlert;
 	}, [formAlert, requestError]);
-	const isCreateReviewing = draftMode === "create" && editorStage === "review";
 	const isEditingRoute = typeof applicationId === "string";
+	const initialDraft = useMemo(() => {
+		if (draftMode === "edit" && selectedApplication) {
+			return toJobApplicationDraft(selectedApplication);
+		}
+
+		return EMPTY_JOB_APPLICATION_DRAFT;
+	}, [draftMode, selectedApplication]);
+	const hasUnsavedChanges = useMemo(() => {
+		return !areDraftsEqual(draft, initialDraft);
+	}, [draft, initialDraft]);
+	const blocker = useBlocker(({ currentLocation, nextLocation }) => {
+		if (allowNavigationRef.current || isMutating || !hasUnsavedChanges) {
+			return false;
+		}
+
+		return currentLocation.pathname !== nextLocation.pathname;
+	});
+	const focusCreateForm = useCallback((behavior: ScrollBehavior = "smooth") => {
+		formRef.current?.scrollIntoView({ behavior, block: "start" });
+
+		window.requestAnimationFrame(() => {
+			createCompanyNameInputRef.current?.focus();
+		});
+	}, []);
 
 	useEffect(() => {
-		if (hasLoadedList || isLoadingList) {
+		void listApplications().catch(() => undefined);
+	}, [listApplications]);
+
+	useEffect(() => {
+		if (isEditingRoute || hasAutoPositionedFormRef.current) {
 			return;
 		}
 
-		void listApplications().catch(() => undefined);
-	}, [hasLoadedList, isLoadingList, listApplications]);
+		hasAutoPositionedFormRef.current = true;
+		focusCreateForm("auto");
+	}, [focusCreateForm, isEditingRoute]);
 
 	useEffect(() => {
 		if (!isEditingRoute) {
 			clearSelection();
 			dispatchEditor({ type: "resetCreate" });
 			clearValidationErrors();
+			allowNavigationRef.current = false;
 			return;
 		}
 
@@ -536,7 +606,30 @@ export default function ApplicationsPage() {
 		}
 
 		dispatchEditor({ type: "mergeValidationErrors", validationErrors });
-	}, [draftMode, editorStage, validationErrors]);
+	}, [draftMode, validationErrors]);
+
+	useEffect(() => {
+		if (!hasUnsavedChanges && blocker.state === "blocked") {
+			blocker.reset();
+		}
+	}, [blocker, hasUnsavedChanges]);
+
+	useEffect(() => {
+		if (!hasUnsavedChanges || allowNavigationRef.current) {
+			return;
+		}
+
+		const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+			event.preventDefault();
+			event.returnValue = "";
+		};
+
+		window.addEventListener("beforeunload", handleBeforeUnload);
+
+		return () => {
+			window.removeEventListener("beforeunload", handleBeforeUnload);
+		};
+	}, [hasUnsavedChanges]);
 
 	useEffect(() => {
 		if (!visibleAlert || visibleAlert.tone !== "error") {
@@ -589,6 +682,7 @@ export default function ApplicationsPage() {
 		field: Key,
 		value: JobApplicationDraft[Key],
 	) {
+		allowNavigationRef.current = false;
 		dispatchEditor({ type: "updateDraftField", field, value });
 		dispatchEditor({ type: "clearFieldErrors", field });
 
@@ -625,7 +719,7 @@ export default function ApplicationsPage() {
 	}
 
 	function validateCurrentDraft() {
-		const nextFieldErrors = validateApplicationDraft(draft, draftMode);
+		const nextFieldErrors = validateApplicationDraft(draft, draftMode, selectedApplication);
 
 		dispatchEditor({ type: "setFieldErrors", fieldErrors: nextFieldErrors });
 
@@ -648,16 +742,37 @@ export default function ApplicationsPage() {
 		return false;
 	}
 
-	function startBlankDraft() {
+	function resetCreateDraft() {
 		if (isActionLocked) {
 			return;
 		}
 
+		allowNavigationRef.current = false;
 		clearSelection();
 		dispatchEditor({ type: "resetCreate" });
 		setSearchQuery("");
 		clearValidationErrors();
 		resetStatus("Application draft reset.");
+	}
+
+	function handleRequestClearDraft() {
+		if (isActionLocked) {
+			return;
+		}
+
+		if (!hasUnsavedChanges) {
+			resetCreateDraft();
+			focusCreateForm();
+			return;
+		}
+
+		setIsClearDraftDialogOpen(true);
+	}
+
+	function handleConfirmClearDraft() {
+		resetCreateDraft();
+		setIsClearDraftDialogOpen(false);
+		focusCreateForm();
 	}
 
 	async function handleCreate() {
@@ -667,6 +782,7 @@ export default function ApplicationsPage() {
 
 		try {
 			await createApplication(toJobApplicationUpsertRequest(draft));
+			allowNavigationRef.current = true;
 			setSearchQuery("");
 			dispatchEditor({ type: "patch", patch: { fieldErrors: {}, formAlert: null } });
 			clearValidationErrors();
@@ -683,8 +799,10 @@ export default function ApplicationsPage() {
 
 		try {
 			await updateApplication(activeApplicationId, toJobApplicationUpsertRequest(draft));
+			allowNavigationRef.current = true;
 			dispatchEditor({ type: "patch", patch: { fieldErrors: {}, formAlert: null } });
 			clearValidationErrors();
+			navigate("/applications", { replace: true });
 		} catch {
 			return;
 		}
@@ -697,6 +815,7 @@ export default function ApplicationsPage() {
 
 		try {
 			await deleteApplication(activeApplicationId);
+			allowNavigationRef.current = true;
 			navigate("/applications", { replace: true });
 		} catch {
 			return;
@@ -721,19 +840,6 @@ export default function ApplicationsPage() {
 	}
 
 	function handleCancel() {
-		if (draftMode === "create" && editorStage === "review") {
-			dispatchEditor({
-				type: "patch",
-				patch: {
-					editorStage: "edit",
-					formAlert: null,
-					isLocationSuggestionsOpen: false,
-				},
-			});
-			resetStatus("Returned to editing.");
-			return;
-		}
-
 		if (draftMode === "edit") {
 			navigate("/applications", { replace: true });
 			return;
@@ -749,23 +855,6 @@ export default function ApplicationsPage() {
 
 		if (draftMode === "edit") {
 			await handleUpdate();
-			return;
-		}
-
-		if (editorStage === "edit") {
-			dispatchEditor({
-				type: "patch",
-				patch: {
-					editorStage: "review",
-					formAlert: {
-						tone: "info",
-						title: "Review before create",
-						message: "Double-check the summary below, then confirm to create the application.",
-					},
-					isLocationSuggestionsOpen: false,
-				},
-			});
-			resetStatus("Review your application before creating it.");
 			return;
 		}
 
@@ -886,27 +975,6 @@ export default function ApplicationsPage() {
 						) : null}
 					</header>
 
-					<div className="application-status-strip">
-						<div>
-							<strong>{statusMessage}</strong>
-							<span>
-								{isLoadingList
-									? "Loading your applications..."
-									: hasLoadedList
-										? `${applications.length} saved application(s)`
-										: "Application list not loaded yet."}
-							</span>
-						</div>
-						<button
-							className="application-status-strip__action"
-							type="button"
-							onClick={startBlankDraft}
-							disabled={isActionLocked}
-						>
-							Create blank draft
-						</button>
-					</div>
-
 					<section className="application-library">
 						<div className="application-library__header">
 							<h2>Application Records</h2>
@@ -917,7 +985,14 @@ export default function ApplicationsPage() {
 							<button
 								type="button"
 								className={draftMode === "create" ? "application-library__item application-library__item--active" : "application-library__item"}
-								onClick={startBlankDraft}
+								onClick={() => {
+									if (draftMode === "create") {
+										handleRequestClearDraft();
+										return;
+									}
+
+									navigate("/applications/new");
+								}}
 								disabled={isActionLocked}
 							>
 								<strong>New draft</strong>
@@ -949,6 +1024,7 @@ export default function ApplicationsPage() {
 					</section>
 
 					<form
+						ref={formRef}
 						className={draftMode === "edit" ? "application-editor application-editor--edit" : "application-editor application-editor--create"}
 						onKeyDown={handleEditorKeyDown}
 						onSubmit={(event) => {
@@ -1062,11 +1138,13 @@ export default function ApplicationsPage() {
 										<h3>Current Status</h3>
 									</div>
 									<div className="application-editor__grid application-editor__grid--two">
-										<label className={getFieldClassName()}>
+										<label className={getFieldClassName(mergedFieldErrors.status)}>
 											<span>Application Status</span>
 											<select
 												value={draft.status}
 												onChange={(event) => updateDraftField("status", event.target.value as JobApplicationDraft["status"])}
+												aria-invalid={mergedFieldErrors.status ? true : undefined}
+												aria-describedby={mergedFieldErrors.status ? "status-error" : undefined}
 												disabled={isMutating}
 											>
 												{JOB_APPLICATION_STATUSES.map((status) => (
@@ -1075,6 +1153,7 @@ export default function ApplicationsPage() {
 													</option>
 												))}
 											</select>
+											{mergedFieldErrors.status ? <small id="status-error" className="application-editor__field-error">{mergedFieldErrors.status}</small> : null}
 										</label>
 										<label className={getFieldClassName(mergedFieldErrors.appliedDate)}>
 											<span>Applied Date</span>
@@ -1087,6 +1166,18 @@ export default function ApplicationsPage() {
 												disabled={isMutating}
 											/>
 											{mergedFieldErrors.appliedDate ? <small id="appliedDate-error" className="application-editor__field-error">{mergedFieldErrors.appliedDate}</small> : null}
+										</label>
+										<label className={getFieldClassName(mergedFieldErrors.nextFollowUpDate)}>
+											<span>Next Follow-up Date</span>
+											<input
+												type="date"
+												value={draft.nextFollowUpDate}
+												onChange={(event) => updateDraftField("nextFollowUpDate", event.target.value)}
+												aria-invalid={mergedFieldErrors.nextFollowUpDate ? true : undefined}
+												aria-describedby={mergedFieldErrors.nextFollowUpDate ? "nextFollowUpDate-error" : undefined}
+												disabled={isMutating}
+											/>
+											{mergedFieldErrors.nextFollowUpDate ? <small id="nextFollowUpDate-error" className="application-editor__field-error">{mergedFieldErrors.nextFollowUpDate}</small> : null}
 										</label>
 									</div>
 								</section>
@@ -1111,66 +1202,13 @@ export default function ApplicationsPage() {
 									</label>
 								</section>
 							</>
-						) : isCreateReviewing ? (
-							<section className="application-editor__card application-editor__card--review">
-								<div className="application-review">
-									<div className="application-review__header">
-										<h3>Review Application</h3>
-										<p>Check the details below before creating this record.</p>
-									</div>
-
-									<section className="application-review__section">
-										<h4>Role Overview</h4>
-										<div className="application-review__grid">
-											<div className="application-review__item">
-												<span>Company</span>
-												<strong>{getReviewValue(draft.companyName)}</strong>
-											</div>
-											<div className="application-review__item">
-												<span>Job Title</span>
-												<strong>{getReviewValue(draft.jobTitle)}</strong>
-											</div>
-											<div className="application-review__item">
-												<span>Location</span>
-												<strong>{getReviewValue(draft.location)}</strong>
-											</div>
-											<div className="application-review__item">
-												<span>Job Link</span>
-												<strong>{getReviewValue(draft.jobLink)}</strong>
-											</div>
-										</div>
-									</section>
-
-									<section className="application-review__section">
-										<h4>Tracking</h4>
-										<div className="application-review__grid">
-											<div className="application-review__item">
-												<span>Status</span>
-												<strong>{draft.status}</strong>
-											</div>
-											<div className="application-review__item">
-												<span>Applied Date</span>
-												<strong>{getReviewValue(draft.appliedDate)}</strong>
-											</div>
-											<div className="application-review__item">
-												<span>Next Follow-up Date</span>
-												<strong>{getReviewValue(draft.nextFollowUpDate)}</strong>
-											</div>
-										</div>
-									</section>
-
-									<section className="application-review__section">
-										<h4>Notes</h4>
-										<p className="application-review__notes">{getReviewValue(draft.notes)}</p>
-									</section>
-								</div>
-							</section>
 						) : (
 							<section className="application-editor__card">
 								<div className="application-editor__grid application-editor__grid--two">
 									<label className={getFieldClassName(mergedFieldErrors.companyName)}>
 										<span>Company Name <em className="application-editor__required">Required</em></span>
 										<input
+											ref={createCompanyNameInputRef}
 											type="text"
 											value={draft.companyName}
 											onChange={(event) => updateDraftField("companyName", event.target.value)}
@@ -1252,11 +1290,13 @@ export default function ApplicationsPage() {
 										{mergedFieldErrors.jobLink ? <small id="create-jobLink-error" className="application-editor__field-error">{mergedFieldErrors.jobLink}</small> : null}
 									</label>
 
-									<label className={getFieldClassName()}>
+									<label className={getFieldClassName(mergedFieldErrors.status)}>
 										<span>Status</span>
 										<select
 											value={draft.status}
 											onChange={(event) => updateDraftField("status", event.target.value as JobApplicationDraft["status"])}
+											aria-invalid={mergedFieldErrors.status ? true : undefined}
+											aria-describedby={mergedFieldErrors.status ? "create-status-error" : undefined}
 											disabled={isMutating}
 										>
 											{JOB_APPLICATION_STATUSES.map((status) => (
@@ -1265,6 +1305,7 @@ export default function ApplicationsPage() {
 												</option>
 											))}
 										</select>
+										{mergedFieldErrors.status ? <small id="create-status-error" className="application-editor__field-error">{mergedFieldErrors.status}</small> : null}
 									</label>
 
 									<label className={getFieldClassName(mergedFieldErrors.appliedDate)}>
@@ -1311,27 +1352,87 @@ export default function ApplicationsPage() {
 						)}
 
 						<div className="application-editor__actions">
-							<button
-								className="application-editor__ghost-button"
-								type="button"
-								onClick={handleCancel}
-								disabled={isActionLocked}
-							>
-								{isCreateReviewing ? "Back to Edit" : "Cancel"}
-							</button>
+							<div className="application-editor__secondary-actions">
+								{draftMode === "create" ? (
+									<button
+										className="application-editor__ghost-button"
+										type="button"
+										onClick={handleRequestClearDraft}
+										disabled={isActionLocked}
+									>
+										Clear draft
+									</button>
+								) : null}
+								<button
+									className="application-editor__ghost-button"
+									type="button"
+									onClick={handleCancel}
+									disabled={isActionLocked}
+								>
+									Cancel
+								</button>
+							</div>
 							<button className="application-editor__primary-button" type="submit" disabled={isActionLocked}>
 								{draftMode === "edit"
 									? isSubmitting
 										? "Saving changes..."
 										: "Save Changes"
-									: isCreateReviewing
-										? isSubmitting
-											? "Creating application..."
-											: "Create Application"
-										: "Review Application"}
+									: isSubmitting
+										? "Saving application..."
+										: "Save Application"}
 							</button>
 						</div>
 					</form>
+
+					{isClearDraftDialogOpen ? (
+						<div className="application-dialog-backdrop" role="presentation">
+							<div className="application-dialog" role="dialog" aria-modal="true" aria-labelledby="clear-draft-title">
+								<h2 id="clear-draft-title">Clear this draft?</h2>
+								<p>This will remove all information currently entered in the form.</p>
+								<div className="application-dialog__actions">
+									<button
+										className="application-editor__ghost-button"
+										type="button"
+										onClick={() => setIsClearDraftDialogOpen(false)}
+									>
+										Cancel
+									</button>
+									<button
+										className="application-editor__primary-button application-dialog__danger-button"
+										type="button"
+										onClick={handleConfirmClearDraft}
+									>
+										Clear draft
+									</button>
+								</div>
+							</div>
+						</div>
+					) : null}
+
+					{blocker.state === "blocked" ? (
+						<div className="application-dialog-backdrop" role="presentation">
+							<div className="application-dialog" role="dialog" aria-modal="true" aria-labelledby="leave-page-title">
+								<h2 id="leave-page-title">Discard unsaved changes?</h2>
+								<p>If you leave this page now, your unsaved application changes will be lost.</p>
+								<div className="application-dialog__actions">
+									<button
+										className="application-editor__ghost-button"
+										type="button"
+										onClick={() => blocker.reset()}
+									>
+										Stay on this page
+									</button>
+									<button
+										className="application-editor__primary-button"
+										type="button"
+										onClick={() => blocker.proceed()}
+									>
+										Leave page
+									</button>
+								</div>
+							</div>
+						</div>
+					) : null}
 				</section>
 			</section>
 		</main>

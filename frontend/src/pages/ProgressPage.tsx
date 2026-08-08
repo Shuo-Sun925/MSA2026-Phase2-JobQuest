@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import logo from "../assets/logo.png";
+import { getLevelProgress } from "../helpers/levelProgress";
 import { useDashboardTheme } from "../hooks/useDashboardTheme";
 import { useAuthStore } from "../store/useAuthStore";
 import { useProgressStore } from "../store/useProgressStore";
@@ -185,15 +186,17 @@ export default function ProgressPage() {
 	const appliedThisWeek = weeklyGoalProgress?.appliedThisWeek ?? summary?.weeklyGoalProgress ?? 0;
 	const remainingApplications = weeklyGoalProgress?.remainingApplications ?? summary?.remainingApplications ?? Math.max(weeklyGoal - appliedThisWeek, 0);
 	const isGoalMet = weeklyGoalProgress?.isGoalMet ?? summary?.isGoalMet ?? false;
+	const levelProgress = getLevelProgress(totalPoints);
 	const totalApplications = summary?.totalApplications ?? 0;
 	const appliedCount = summary?.appliedCount ?? 0;
+	const onlineAssessmentCount = summary?.onlineAssessmentCount ?? 0;
 	const interviewCount = summary?.interviewCount ?? 0;
 	const offerCount = summary?.offerCount ?? 0;
 	const rejectedCount = summary?.rejectedCount ?? 0;
 	const savedCount = summary?.savedCount ?? 0;
+	const withdrawnCount = summary?.withdrawnCount ?? 0;
 	const lastActivityDate = progress?.lastActivityDate ?? summary?.lastActivityDate ?? null;
-	const nextLevelTarget = Math.max((currentLevel + 1) * 250, 250);
-	const levelProgressPercent = Math.min(100, Math.round((totalPoints / nextLevelTarget) * 100));
+	const levelProgressPercent = levelProgress.progressPercent;
 	const weeklyProgressPercent = Math.min(100, Math.round((appliedThisWeek / Math.max(weeklyGoal, 1)) * 100));
 	const isReady = hasLoadedProgress || hasLoadedSummary || hasLoadedWeeklyGoalProgress;
 	const weeklyGoalCompletionText = `${appliedThisWeek} of ${weeklyGoal} applications completed`;
@@ -202,25 +205,10 @@ export default function ProgressPage() {
 		theme === "dark" ? "dashboard-shell dashboard-shell--dark" : "dashboard-shell";
 
 	useEffect(() => {
-		if (!hasLoadedProgress) {
-			void loadProgress().catch(() => undefined);
-		}
-
-		if (!hasLoadedSummary) {
-			void loadSummary().catch(() => undefined);
-		}
-
-		if (!hasLoadedWeeklyGoalProgress) {
-			void loadWeeklyGoalProgress().catch(() => undefined);
-		}
-	}, [
-		hasLoadedProgress,
-		hasLoadedSummary,
-		hasLoadedWeeklyGoalProgress,
-		loadProgress,
-		loadSummary,
-		loadWeeklyGoalProgress,
-	]);
+		void loadProgress().catch(() => undefined);
+		void loadSummary().catch(() => undefined);
+		void loadWeeklyGoalProgress().catch(() => undefined);
+	}, [loadProgress, loadSummary, loadWeeklyGoalProgress]);
 
 	async function handleSaveWeeklyGoal() {
 		try {
@@ -337,7 +325,11 @@ export default function ProgressPage() {
 										</div>
 										<div className="dashboard-level-card__meta">
 											<span>Next level</span>
-											<strong>{Math.max(nextLevelTarget - totalPoints, 0)} XP to go</strong>
+											<strong>
+												{levelProgress.isMaxLevel
+													? "Max level reached"
+													: `${levelProgress.xpToNextLevel} XP to go`}
+											</strong>
 										</div>
 									</div>
 
@@ -434,6 +426,10 @@ export default function ProgressPage() {
 											<strong>{appliedCount}</strong>
 										</div>
 										<div className="progress-stage-card">
+											<span>Online Assessments</span>
+											<strong>{onlineAssessmentCount}</strong>
+										</div>
+										<div className="progress-stage-card">
 											<span>Interviews</span>
 											<strong>{interviewCount}</strong>
 										</div>
@@ -444,6 +440,10 @@ export default function ProgressPage() {
 										<div className="progress-stage-card">
 											<span>Rejected</span>
 											<strong>{rejectedCount}</strong>
+										</div>
+										<div className="progress-stage-card">
+											<span>Withdrawn</span>
+											<strong>{withdrawnCount}</strong>
 										</div>
 									</div>
 								</article>

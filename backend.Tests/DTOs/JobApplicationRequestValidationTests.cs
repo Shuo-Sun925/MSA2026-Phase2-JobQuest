@@ -21,7 +21,7 @@ public class JobApplicationRequestValidationTests
 
         Assert.Contains(
             results,
-            result => result.ErrorMessage == "A saved job application cannot have an applied date."
+            result => result.ErrorMessage == "Saved applications cannot include an applied date. Clear the date or change the status to Applied."
         );
     }
 
@@ -41,7 +41,7 @@ public class JobApplicationRequestValidationTests
 
         Assert.Contains(
             results,
-            result => result.ErrorMessage == "A withdrawn application should not have a follow-up date."
+            result => result.ErrorMessage == "Withdrawn applications cannot include a follow-up date."
         );
     }
 
@@ -80,7 +80,7 @@ public class JobApplicationRequestValidationTests
 
         Assert.Contains(
             results,
-            result => result.ErrorMessage == "A saved job application cannot have an applied date."
+            result => result.ErrorMessage == "Saved applications cannot include an applied date. Clear the date or change the status to Applied."
         );
     }
 

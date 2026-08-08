@@ -260,12 +260,8 @@ export default function ApplicationsOverviewPage() {
 	useEffect(() => {
 		clearSelection();
 
-		if (hasLoadedList || isLoadingList) {
-			return;
-		}
-
 		void listApplications().catch(() => undefined);
-	}, [clearSelection, hasLoadedList, isLoadingList, listApplications]);
+	}, [clearSelection, listApplications]);
 
 	const visibleApplications = useMemo(() => {
 		const normalizedQuery = searchQuery.trim().toLowerCase();

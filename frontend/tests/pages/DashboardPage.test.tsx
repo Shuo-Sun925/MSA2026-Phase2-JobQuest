@@ -188,7 +188,7 @@ describe("DashboardPage", () => {
 		progressStoreState = {
 			progress: {
 				totalPoints: 120,
-				currentLevel: 2,
+				currentLevel: 3,
 				currentStreak: 4,
 				lastActivityDate: "2026-08-01",
 				weeklyGoal: 5,
@@ -204,7 +204,7 @@ describe("DashboardPage", () => {
 				rejectedCount: 1,
 				withdrawnCount: 0,
 				totalPoints: 120,
-				currentLevel: 2,
+				currentLevel: 3,
 				currentStreak: 4,
 				lastActivityDate: "2026-08-01",
 				weeklyGoal: 5,
@@ -249,10 +249,41 @@ describe("DashboardPage", () => {
 		expect(screen.getByRole("heading", { name: /Welcome back, alice!/i })).toBeInTheDocument();
 		expect(screen.getByText("Total apps")).toBeInTheDocument();
 		expect(screen.getByText("8")).toBeInTheDocument();
-		expect(screen.getByText("Level 2")).toBeInTheDocument();
+		expect(screen.getByRole("heading", { name: "Level 3" })).toBeInTheDocument();
+		expect(screen.getByText("80 XP to Level 4")).toBeInTheDocument();
 		expect(screen.getByText("4 Day Streak")).toBeInTheDocument();
 		expect(screen.getByText("Contoso")).toBeInTheDocument();
 		expect(screen.getByRole("heading", { name: "Achievements" })).toBeInTheDocument();
+	});
+
+	it("shows max level state instead of a fake next level when total XP reaches level 5", () => {
+		progressStoreState = {
+			...progressStoreState,
+			progress: {
+				...progressStoreState.progress!,
+				totalPoints: 350,
+				currentLevel: 5,
+			},
+			summary: {
+				...progressStoreState.summary!,
+				totalPoints: 350,
+				currentLevel: 5,
+			},
+		};
+
+		renderDashboardPage();
+
+		expect(screen.getByText("Level 5")).toBeInTheDocument();
+		expect(screen.getByText("Max level reached")).toBeInTheDocument();
+		expect(screen.getByText("350 XP total")).toBeInTheDocument();
+	});
+
+	it("refreshes dashboard summary data when the page mounts even if cached data exists", async () => {
+		renderDashboardPage();
+
+		await waitFor(() => {
+			expect(loadSummaryMock).toHaveBeenCalledTimes(1);
+		});
 	});
 
 	it("triggers dashboard data loading and surfaces the empty/error state when no data is loaded", async () => {
