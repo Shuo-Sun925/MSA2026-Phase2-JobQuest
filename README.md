@@ -255,12 +255,12 @@ The `specs/` folder keeps the planning, design, AI-usage, and project-context ev
 
 - `00-project-context.md`
 - `01-planning-draft.md`
-- `03-architecture.md`
-- `04-database-design.md`
-- `07-gamification-and-business-rules.md`
-- `08-ai-prompts.md`
-- `09-agent-instructions.md`
-- `10-design-decisions.md`
+- `02-architecture.md`
+- `03-database-design.md`
+- `04-gamification-and-business-rules.md`
+- `05-ai-prompts.md`
+- `06-agent-instructions.md`
+- `07-design-decisions.md`
 
 ## Self Reflection
 
