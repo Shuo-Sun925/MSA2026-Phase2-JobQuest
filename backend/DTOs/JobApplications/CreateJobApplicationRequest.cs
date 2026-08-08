@@ -55,7 +55,7 @@ public class CreateJobApplicationRequest : IValidatableObject
             && AppliedDate.HasValue)
         {
             yield return new ValidationResult(
-                "A saved job application cannot have an applied date.",
+                "Saved applications cannot include an applied date. Clear the date or change the status to Applied.",
                 new[]
                 {
                     nameof(AppliedDate)
@@ -68,7 +68,7 @@ public class CreateJobApplicationRequest : IValidatableObject
             && NextFollowUpDate.HasValue)
         {
             yield return new ValidationResult(
-                "A withdrawn application should not have a follow-up date.",
+                "Withdrawn applications cannot include a follow-up date.",
                 new[]
                 {
                     nameof(NextFollowUpDate)

@@ -167,10 +167,8 @@ export default function AchievementsPage() {
 		theme === "dark" ? "dashboard-shell dashboard-shell--dark" : "dashboard-shell";
 
 	useEffect(() => {
-		if (!hasLoadedAchievements && !isLoadingAchievements) {
-			void loadAchievements().catch(() => undefined);
-		}
-	}, [hasLoadedAchievements, isLoadingAchievements, loadAchievements]);
+		void loadAchievements().catch(() => undefined);
+	}, [loadAchievements]);
 
 	return (
 		<main className={dashboardShellClassName}>

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import AchievementsPage from "../../src/pages/AchievementsPage";
@@ -140,5 +140,20 @@ describe("AchievementsPage", () => {
 		);
 
 		expect(screen.getByText("Backend unavailable")).toBeInTheDocument();
+	});
+
+	it("refreshes achievements when the page mounts even if cached data exists", async () => {
+		achievementsStoreState = {
+			...achievementsStoreState,
+			achievements: [createAchievement({ isUnlocked: true, unlockedAt: "2026-08-01T00:00:00.000Z" })],
+			hasLoadedAchievements: true,
+			isLoadingAchievements: false,
+		};
+
+		renderAchievementsPage();
+
+		await waitFor(() => {
+			expect(loadAchievementsMock).toHaveBeenCalledTimes(1);
+		});
 	});
 });

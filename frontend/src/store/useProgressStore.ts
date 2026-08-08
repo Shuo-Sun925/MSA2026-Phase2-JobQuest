@@ -37,6 +37,9 @@ interface ProgressStoreState {
 }
 
 const INITIAL_STATUS_MESSAGE = "Ready to connect to the Progress API";
+let progressRequest: Promise<ProgressResponse> | null = null;
+let summaryRequest: Promise<ProgressSummaryResponse> | null = null;
+let weeklyGoalProgressRequest: Promise<WeeklyGoalProgressResponse> | null = null;
 
 function createInitialProgressState() {
 	return {
@@ -159,9 +162,9 @@ function updateWeeklyGoalProgressState(
 export const useProgressStore = create<ProgressStoreState>((set, get) => ({
 	...createInitialProgressState(),
 
-	async loadProgress() {
-		if (get().isLoadingProgress) {
-			return get().progress ?? await fetchProgress();
+	loadProgress() {
+		if (progressRequest) {
+			return progressRequest;
 		}
 
 		set({
@@ -171,33 +174,37 @@ export const useProgressStore = create<ProgressStoreState>((set, get) => ({
 			statusMessage: "Loading progress...",
 		});
 
-		try {
-			const progress = await fetchProgress();
+		progressRequest = fetchProgress()
+			.then((progress) => {
+				set({
+					progress,
+					hasLoadedProgress: true,
+					statusMessage: "Loaded /progress successfully.",
+				});
 
-			set({
-				progress,
-				hasLoadedProgress: true,
-				statusMessage: "Loaded /progress successfully.",
+				return progress;
+			})
+			.catch((error) => {
+				const message = getProgressErrorMessage(error, "Failed to load progress.");
+
+				set({
+					requestError: message,
+					statusMessage: "Progress request failed.",
+				});
+
+				throw error;
+			})
+			.finally(() => {
+				progressRequest = null;
+				set({ isLoadingProgress: false });
 			});
 
-			return progress;
-		} catch (error) {
-			const message = getProgressErrorMessage(error, "Failed to load progress.");
-
-			set({
-				requestError: message,
-				statusMessage: "Progress request failed.",
-			});
-
-			throw error;
-		} finally {
-			set({ isLoadingProgress: false });
-		}
+		return progressRequest;
 	},
 
-	async loadSummary() {
-		if (get().isLoadingSummary) {
-			return get().summary ?? await fetchProgressSummary();
+	loadSummary() {
+		if (summaryRequest) {
+			return summaryRequest;
 		}
 
 		set({
@@ -207,36 +214,40 @@ export const useProgressStore = create<ProgressStoreState>((set, get) => ({
 			statusMessage: "Loading progress summary...",
 		});
 
-		try {
-			const summary = await fetchProgressSummary();
+		summaryRequest = fetchProgressSummary()
+			.then((summary) => {
+				set({
+					summary,
+					hasLoadedSummary: true,
+					statusMessage: "Loaded /progress/summary successfully.",
+				});
 
-			set({
-				summary,
-				hasLoadedSummary: true,
-				statusMessage: "Loaded /progress/summary successfully.",
+				return summary;
+			})
+			.catch((error) => {
+				const message = getProgressErrorMessage(
+					error,
+					"Failed to load progress summary.",
+				);
+
+				set({
+					requestError: message,
+					statusMessage: "Progress summary request failed.",
+				});
+
+				throw error;
+			})
+			.finally(() => {
+				summaryRequest = null;
+				set({ isLoadingSummary: false });
 			});
 
-			return summary;
-		} catch (error) {
-			const message = getProgressErrorMessage(
-				error,
-				"Failed to load progress summary.",
-			);
-
-			set({
-				requestError: message,
-				statusMessage: "Progress summary request failed.",
-			});
-
-			throw error;
-		} finally {
-			set({ isLoadingSummary: false });
-		}
+		return summaryRequest;
 	},
 
-	async loadWeeklyGoalProgress() {
-		if (get().isLoadingWeeklyGoalProgress) {
-			return get().weeklyGoalProgress ?? await fetchWeeklyGoalProgress();
+	loadWeeklyGoalProgress() {
+		if (weeklyGoalProgressRequest) {
+			return weeklyGoalProgressRequest;
 		}
 
 		set({
@@ -246,31 +257,35 @@ export const useProgressStore = create<ProgressStoreState>((set, get) => ({
 			statusMessage: "Loading weekly goal progress...",
 		});
 
-		try {
-			const weeklyGoalProgress = await fetchWeeklyGoalProgress();
+		weeklyGoalProgressRequest = fetchWeeklyGoalProgress()
+			.then((weeklyGoalProgress) => {
+				set({
+					weeklyGoalProgress,
+					hasLoadedWeeklyGoalProgress: true,
+					statusMessage: "Loaded /progress/weekly-goal-progress successfully.",
+				});
 
-			set({
-				weeklyGoalProgress,
-				hasLoadedWeeklyGoalProgress: true,
-				statusMessage: "Loaded /progress/weekly-goal-progress successfully.",
+				return weeklyGoalProgress;
+			})
+			.catch((error) => {
+				const message = getProgressErrorMessage(
+					error,
+					"Failed to load weekly goal progress.",
+				);
+
+				set({
+					requestError: message,
+					statusMessage: "Weekly goal progress request failed.",
+				});
+
+				throw error;
+			})
+			.finally(() => {
+				weeklyGoalProgressRequest = null;
+				set({ isLoadingWeeklyGoalProgress: false });
 			});
 
-			return weeklyGoalProgress;
-		} catch (error) {
-			const message = getProgressErrorMessage(
-				error,
-				"Failed to load weekly goal progress.",
-			);
-
-			set({
-				requestError: message,
-				statusMessage: "Weekly goal progress request failed.",
-			});
-
-			throw error;
-		} finally {
-			set({ isLoadingWeeklyGoalProgress: false });
-		}
+		return weeklyGoalProgressRequest;
 	},
 
 	async updateWeeklyGoal(weeklyGoal) {
@@ -327,6 +342,9 @@ export const useProgressStore = create<ProgressStoreState>((set, get) => ({
 	},
 
 	resetStore() {
+		progressRequest = null;
+		summaryRequest = null;
+		weeklyGoalProgressRequest = null;
 		set(createInitialProgressState());
 	},
 

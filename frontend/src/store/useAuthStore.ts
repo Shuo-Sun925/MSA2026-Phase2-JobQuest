@@ -35,6 +35,7 @@ interface AuthStoreState {
 }
 
 let sessionExpiryTimeout: number | null = null;
+let currentUserRequest: Promise<void> | null = null;
 
 function clearSessionExpiryTimeout() {
 	if (sessionExpiryTimeout !== null) {
@@ -233,43 +234,53 @@ export const useAuthStore = create<AuthStoreState>((set) => ({
 		}
 	},
 
-	async loadCurrentUser() {
+	loadCurrentUser() {
+		if (currentUserRequest) {
+			return currentUserRequest;
+		}
+
 		set({
 			requestError: "",
 			isLoadingProfile: true,
 			statusMessage: "Loading the protected endpoint...",
 		});
 
-		try {
-			const currentUser = await fetchCurrentUser();
+		currentUserRequest = fetchCurrentUser()
+			.then((currentUser) => {
+				set({
+					currentUser,
+					requestError: "",
+					statusMessage: `Protected endpoint request succeeded for ${currentUser.username}`,
+				});
+			})
+			.catch((error) => {
+				const message = getAuthErrorMessage(
+					error,
+					"Failed to load the current user.",
+				);
 
-			set({
-				currentUser,
-				requestError: "",
-				statusMessage: `Protected endpoint request succeeded for ${currentUser.username}`,
+				set({
+					currentUser: null,
+					requestError: message,
+					statusMessage: "Protected endpoint request failed.",
+				});
+				throw error;
+			})
+			.finally(() => {
+				currentUserRequest = null;
+				set({ isLoadingProfile: false });
 			});
-		} catch (error) {
-			const message = getAuthErrorMessage(
-				error,
-				"Failed to load the current user.",
-			);
 
-			set({
-				currentUser: null,
-				requestError: message,
-				statusMessage: "Protected endpoint request failed.",
-			});
-			throw error;
-		} finally {
-			set({ isLoadingProfile: false });
-		}
+		return currentUserRequest;
 	},
 
 	logout(message = "Local session cleared. The user has been signed out.") {
+		currentUserRequest = null;
 		clearSessionWithMessage(set, message);
 	},
 
 	handleUnauthorized() {
+		currentUserRequest = null;
 		clearSessionWithMessage(
 			set,
 			"The JWT is expired or invalid. The local session has been cleared.",

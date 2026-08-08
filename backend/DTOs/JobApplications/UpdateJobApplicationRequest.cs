@@ -55,7 +55,7 @@ public class UpdateJobApplicationRequest : IValidatableObject
             && AppliedDate.HasValue)
         {
             yield return new ValidationResult(
-                "A saved job application cannot have an applied date.",
+                "Saved applications cannot include an applied date. Clear the date or change the status to Applied.",
                 new[]
                 {
                     nameof(AppliedDate)

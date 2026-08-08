@@ -120,7 +120,11 @@ public class JobApplicationsControllerTests
             }
         );
 
-        Assert.IsType<BadRequestObjectResult>(result.Result);
+        var badRequestResult = Assert.IsType<BadRequestObjectResult>(result.Result);
+        Assert.Equal(
+            "You can't move an application from Offer to Interview.",
+            badRequestResult.Value?.GetType().GetProperty("message")?.GetValue(badRequestResult.Value)
+        );
         Assert.Equal(0, gamificationService.UpdateCalls);
     }
 

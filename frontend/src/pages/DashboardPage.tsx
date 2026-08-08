@@ -6,6 +6,7 @@ import interviewUnlockedIcon from "../assets/interview-unlocked.png";
 import jobHunterIcon from "../assets/job-hunter.png";
 import logo from "../assets/logo.png";
 import offerHunterIcon from "../assets/offer-hunter.png";
+import { getLevelProgress } from "../helpers/levelProgress";
 import { useDashboardTheme } from "../hooks/useDashboardTheme";
 import { useAuthStore } from "../store/useAuthStore";
 import { useAchievementsStore } from "../store/useAchievementsStore";
@@ -155,52 +156,24 @@ export default function DashboardPage() {
 	const progress = useProgressStore((state) => state.progress);
 	const summary = useProgressStore((state) => state.summary);
 	const weeklyGoalProgress = useProgressStore((state) => state.weeklyGoalProgress);
-	const hasLoadedProgress = useProgressStore((state) => state.hasLoadedProgress);
-	const hasLoadedSummary = useProgressStore((state) => state.hasLoadedSummary);
-	const hasLoadedWeeklyGoalProgress = useProgressStore(
-		(state) => state.hasLoadedWeeklyGoalProgress,
-	);
 	const loadProgress = useProgressStore((state) => state.loadProgress);
 	const loadSummary = useProgressStore((state) => state.loadSummary);
 	const loadWeeklyGoalProgress = useProgressStore((state) => state.loadWeeklyGoalProgress);
 	const progressError = useProgressStore((state) => state.requestError);
 
 	const achievements = useAchievementsStore((state) => state.achievements);
-	const hasLoadedAchievements = useAchievementsStore((state) => state.hasLoadedAchievements);
 	const loadAchievements = useAchievementsStore((state) => state.loadAchievements);
 
 	const applications = useJobApplicationsStore((state) => state.applications);
-	const hasLoadedList = useJobApplicationsStore((state) => state.hasLoadedList);
-	const isLoadingList = useJobApplicationsStore((state) => state.isLoadingList);
 	const listApplications = useJobApplicationsStore((state) => state.listApplications);
 
 	useEffect(() => {
-		if (!hasLoadedProgress) {
-			void loadProgress().catch(() => undefined);
-		}
-
-		if (!hasLoadedSummary) {
-			void loadSummary().catch(() => undefined);
-		}
-
-		if (!hasLoadedWeeklyGoalProgress) {
-			void loadWeeklyGoalProgress().catch(() => undefined);
-		}
-
-		if (!hasLoadedAchievements) {
-			void loadAchievements().catch(() => undefined);
-		}
-
-		if (!hasLoadedList && !isLoadingList) {
-			void listApplications().catch(() => undefined);
-		}
+		void loadProgress().catch(() => undefined);
+		void loadSummary().catch(() => undefined);
+		void loadWeeklyGoalProgress().catch(() => undefined);
+		void loadAchievements().catch(() => undefined);
+		void listApplications().catch(() => undefined);
 	}, [
-		hasLoadedAchievements,
-		hasLoadedList,
-		hasLoadedProgress,
-		hasLoadedSummary,
-		hasLoadedWeeklyGoalProgress,
-		isLoadingList,
 		listApplications,
 		loadAchievements,
 		loadProgress,
@@ -214,10 +187,11 @@ export default function DashboardPage() {
 	const appliedThisWeek = weeklyGoalProgress?.appliedThisWeek ?? summary?.weeklyGoalProgress ?? 0;
 	const weeklyProgressPercent = Math.min(100, Math.round((appliedThisWeek / Math.max(safeWeeklyGoal, 1)) * 100));
 	const totalPoints = progress?.totalPoints ?? summary?.totalPoints ?? 0;
-	const currentLevel = progress?.currentLevel ?? summary?.currentLevel ?? 1;
-	const nextLevelTarget = Math.max((currentLevel + 1) * 250, 250);
-	const levelProgressPercent = Math.min(100, Math.round((totalPoints / nextLevelTarget) * 100));
-	const xpToNextLevel = Math.max(0, nextLevelTarget - totalPoints);
+	const levelProgress = getLevelProgress(totalPoints);
+	const currentLevel = levelProgress.currentLevel;
+	const nextLevelTarget = levelProgress.nextLevelTarget;
+	const levelProgressPercent = levelProgress.progressPercent;
+	const xpToNextLevel = levelProgress.xpToNextLevel;
 	const currentStreak = progress?.currentStreak ?? summary?.currentStreak ?? 0;
 	const totalApplications = summary?.totalApplications ?? applications.length;
 	const isNewUserEmptyState = totalApplications === 0;
@@ -373,9 +347,13 @@ export default function DashboardPage() {
 										</div>
 										<div className="dashboard-level-card__meta">
 											<strong>
-												{totalPoints} / {nextLevelTarget} XP
+												{nextLevelTarget === null ? `${totalPoints} XP total` : `${totalPoints} / ${nextLevelTarget} XP`}
 											</strong>
-											<span>{xpToNextLevel} XP to Level {currentLevel + 1}</span>
+											<span>
+												{levelProgress.isMaxLevel
+													? "Max level reached"
+													: `${xpToNextLevel} XP to Level ${levelProgress.nextLevel}`}
+											</span>
 										</div>
 									</div>
 									<div className="dashboard-level-card__progress">
