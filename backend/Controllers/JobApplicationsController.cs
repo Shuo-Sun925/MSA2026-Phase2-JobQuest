@@ -185,7 +185,7 @@ public class JobApplicationsController : ControllerBase
             return BadRequest(new
             {
                 message =
-                    $"You can't move an application from {FormatStatus(application.Status)} back to {FormatStatus(request.Status)}."
+                    $"You can't move an application from {FormatStatus(application.Status)} to {FormatStatus(request.Status)}."
             });
         }
 

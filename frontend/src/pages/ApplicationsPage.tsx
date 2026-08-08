@@ -218,7 +218,7 @@ function validateApplicationDraft(
 		&& existingApplication
 		&& !isValidStatusTransition(existingApplication.status, draft.status)
 	) {
-		errors.status = `You can't move an application from ${formatApplicationStatus(existingApplication.status)} back to ${formatApplicationStatus(draft.status)}.`;
+		errors.status = `You can't move an application from ${formatApplicationStatus(existingApplication.status)} to ${formatApplicationStatus(draft.status)}.`;
 		return errors;
 	}
 
